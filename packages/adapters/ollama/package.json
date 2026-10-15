@@ -1,0 +1,17 @@
+{
+  "name": "@tutors-ai/adapter-ollama",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "LanguageModel adapter for Ollama over HTTP: prompt templates, structured output, streaming, digest pinning.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

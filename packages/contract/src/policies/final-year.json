@@ -1,0 +1,9 @@
+{
+  "id": "final-year",
+  "version": "0.1.0",
+  "level": "final-year",
+  "maxDepth": "explanation",
+  "memory": { "kind": "course", "sharing": "private" },
+  "maxResponseChars": 2400,
+  "maxMaterial": 8
+}

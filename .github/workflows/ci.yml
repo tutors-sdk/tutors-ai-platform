@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Typecheck, lint, EARS gate, unit and contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm ears
+      - run: pnpm test --project unit
+
+  mutation:
+    name: Mutation score (core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm mutation
+      - run: node scripts/check-mutation.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: packages/core/reports/mutation/
+
+  integration:
+    name: Adapter integration (Ollama, CPU model)
+    runs-on: ubuntu-latest
+    services:
+      ollama:
+        image: ollama/ollama:0.12.3
+        ports:
+          - 11434:11434
+    env:
+      OLLAMA_URL: http://localhost:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull the CI model and resolve its digest
+        run: |
+          for i in $(seq 1 30); do curl -sf "$OLLAMA_URL/api/version" && break; sleep 2; done
+          curl -sf "$OLLAMA_URL/api/pull" -d "{\"model\":\"$OLLAMA_MODEL\",\"stream\":false}"
+          digest=$(curl -sf "$OLLAMA_URL/api/tags" | jq -r --arg m "$OLLAMA_MODEL" '.models[] | select(.name == $m) | .digest')
+          test -n "$digest"
+          echo "OLLAMA_DIGEST=sha256:$digest" >> "$GITHUB_ENV"
+          echo "CI model $OLLAMA_MODEL is sha256:$digest"
+      - run: pnpm test:integration

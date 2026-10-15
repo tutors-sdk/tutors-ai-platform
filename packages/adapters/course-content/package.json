@@ -1,0 +1,17 @@
+{
+  "name": "@tutors-ai/adapter-course-content",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "CourseContent adapter over a Tutors course export: chunking and lexical ranking.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

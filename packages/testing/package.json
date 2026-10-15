@@ -1,0 +1,17 @@
+{
+  "name": "@tutors-ai/testing",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Port contract-test kits, fakes and builders. Written against ports, never vendors.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": "^4.1.0"
+  }
+}

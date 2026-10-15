@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["packages/**/*.ts", "apps/**/*.ts", "*.ts"],
+  "exclude": ["**/node_modules", "**/dist", "**/.stryker-tmp"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@tutors-ai/core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Framework-free domain, ports and use cases for the Tutors AI platform. Zero runtime dependencies.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "mutation": "stryker run"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

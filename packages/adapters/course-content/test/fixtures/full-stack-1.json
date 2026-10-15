@@ -1,0 +1,72 @@
+{
+  "id": "full-stack-1",
+  "title": "Full Stack Development 1",
+  "programmeId": "bsc-computing",
+  "topics": [
+    {
+      "id": "topic-01-javascript",
+      "title": "JavaScript Fundamentals",
+      "labs": [
+        {
+          "id": "lab-01-loops",
+          "title": "Lab 1: Loops",
+          "steps": [
+            {
+              "id": "00",
+              "title": "Setup",
+              "markdown": "# Setup\n\nInstall Node.js 22 and open the lab folder in VS Code.\n\nRun `node --version` to check the install."
+            },
+            {
+              "id": "01",
+              "title": "While loops",
+              "markdown": "# While loops\n\nA `while` loop repeats its body as long as its condition is true. If nothing in the body changes the condition, the loop never ends.\n\n```js\nlet i = 0;\nwhile (i < 10) {\n  console.log(i);\n  i++;\n}\n```\n\n## Exercise\n\nChange the loop so it counts down from ten to zero."
+            },
+            {
+              "id": "02",
+              "title": "For loops",
+              "markdown": "# For loops\n\nA `for` loop gathers the initialiser, condition and increment in one line.\n\n```js\nfor (let i = 0; i < 10; i++) {\n  console.log(i);\n}\n```"
+            }
+          ]
+        },
+        {
+          "id": "lab-02-arrays",
+          "title": "Lab 2: Arrays",
+          "steps": [
+            {
+              "id": "00",
+              "title": "Arrays",
+              "markdown": "# Arrays\n\nAn array holds an ordered list of values. Use `push` to add to the end and `length` to count items."
+            },
+            {
+              "id": "01",
+              "title": "Iterating arrays",
+              "markdown": "# Iterating\n\nUse `for...of` to visit each element, or `forEach` with a callback."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "topic-02-node",
+      "title": "Node",
+      "labs": [
+        {
+          "id": "lab-03-modules",
+          "title": "Lab 3: Modules",
+          "steps": [
+            {
+              "id": "00",
+              "title": "Modules",
+              "markdown": "# ES Modules\n\nUse `import` and `export` to share code between files in this lab."
+            },
+            {
+              "id": "01",
+              "title": "Empty",
+              "markdown": "   "
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

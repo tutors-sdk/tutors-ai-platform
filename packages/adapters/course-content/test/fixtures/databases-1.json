@@ -1,0 +1,23 @@
+{
+  "id": "databases-1",
+  "title": "Databases 1",
+  "topics": [
+    {
+      "id": "topic-01-sql",
+      "title": "SQL",
+      "labs": [
+        {
+          "id": "lab-01-select",
+          "title": "Lab 1: SELECT",
+          "steps": [
+            {
+              "id": "00",
+              "title": "Select",
+              "markdown": "# SELECT\n\nThe first lab: use SELECT to read rows; a WHERE clause filters them."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

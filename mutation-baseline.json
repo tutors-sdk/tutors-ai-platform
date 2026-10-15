@@ -1,0 +1,6 @@
+{
+  "$comment": "Minimum mutation score per package. Recorded at phase 1; may rise, may not fall.",
+  "packages": {
+    "packages/core": 100
+  }
+}

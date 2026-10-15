@@ -1,0 +1,18 @@
+{
+  "name": "@tutors-ai/contract",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Draft of @tutors/ai-contract 0.1 (request and response schemas, capability levels, MemoryScope, evidence types) and the contract adapter that maps it to core.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*"
+  }
+}
