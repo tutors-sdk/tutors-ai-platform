@@ -18,7 +18,9 @@ import {
   ContractPolicyProvider,
   ContractViolation,
   toAssistanceRequest,
+  fromAssistResponse,
   toAssistResponse,
+  toGoldenSet,
   toNewEvidence,
   toRetentionBoundary,
   toRetentionResponse,
@@ -78,7 +80,30 @@ describe('contract adapter', () => {
       trace: { bound: null, materialIds: [], model: null, promptVersion: null },
     };
     for (const r of [answered, refused]) expect(contract.AssistResponse.parse(toAssistResponse(r))).toEqual(toAssistResponse(r));
-    expect(toAssistResponse(answered).trace.policy).toEqual({ id: 'first-year', version: '0.1.0' });
+    expect(toAssistResponse(answered).trace.policy).toEqual({
+      id: 'first-year',
+      version: '0.1.0',
+      maxDepth: 'hint',
+      maxResponseChars: 600,
+      memory: { kind: 'session', sharing: 'private' },
+    });
+    for (const r of [answered, refused]) expect(fromAssistResponse(JSON.parse(JSON.stringify(toAssistResponse(r))))).toEqual(r);
+    expect(() => fromAssistResponse({ ...toAssistResponse(refused), reason: 'bored' })).toThrow(ContractViolation);
+  });
+
+  it('reads a golden set, leaving absent optionals absent', () => {
+    const set = toGoldenSet({
+      id: 'first-year',
+      version: '1',
+      level: 'first-year',
+      cases: [
+        { id: 'c1', learner: wireRequest.learner, question: 'Why?', expected: { kind: 'answered', maxDepth: 'hint', citations: ['m1'] } },
+        { id: 'c2', learner: wireRequest.learner, question: 'Solve it for me', expected: { kind: 'refused' } },
+      ],
+    });
+    expect(set.cases.map((c) => c.expected.kind)).toEqual(['answered', 'refused']);
+    expect(Object.keys(set.cases[0]?.learner ?? {})).not.toContain('topicId');
+    expect(() => toGoldenSet({ id: 'x', version: '1', level: 'first-year', cases: [{ id: 'c' }] })).toThrow(ContractViolation);
   });
 
   it('maps evidence with an ISO timestamp to the domain', () => {

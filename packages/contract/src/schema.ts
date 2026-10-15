@@ -49,7 +49,10 @@ export const AssistRequest = z
   .strict();
 
 const Trace = z.object({
-  policy: z.object({ id: z.string(), version: z.string() }).nullable(),
+  /** The bound the exchange was held to: the policy, and the depth, length and memory it allowed. */
+  policy: z
+    .object({ id: z.string(), version: z.string(), maxDepth: AssistanceDepth, maxResponseChars: z.number().int(), memory: MemoryScope })
+    .nullable(),
   materialIds: z.array(z.string()),
   model: z.object({ name: z.string(), digest: z.string() }).nullable(),
   promptVersion: z.string().nullable(),

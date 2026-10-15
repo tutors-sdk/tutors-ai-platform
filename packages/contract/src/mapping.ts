@@ -1,8 +1,10 @@
-import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence, RetentionBoundary, RetentionResult } from '@tutors-ai/core';
+import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence, GoldenSet, RetentionBoundary, RetentionResult } from '@tutors-ai/core';
 import {
   AssistRequest,
   CONTRACT_VERSION,
   RecordEvidenceRequest,
+  AssistResponse as AssistResponseSchema,
+  GoldenSet as GoldenSetSchema,
   RetentionRequest,
   type AssistResponse,
   type RetentionResponse,
@@ -36,7 +38,16 @@ export function toAssistanceRequest(input: unknown): AssistanceRequest {
 /** Core → contract: the wire response. */
 export function toAssistResponse(response: AssistanceResponse): AssistResponse {
   const trace = {
-    policy: response.trace.bound === null ? null : { id: response.trace.bound.policyId, version: response.trace.bound.policyVersion },
+    policy:
+      response.trace.bound === null
+        ? null
+        : {
+            id: response.trace.bound.policyId,
+            version: response.trace.bound.policyVersion,
+            maxDepth: response.trace.bound.maxDepth,
+            maxResponseChars: response.trace.bound.maxResponseChars,
+            memory: { ...response.trace.bound.memory },
+          },
     materialIds: [...response.trace.materialIds],
     model: response.trace.model === null ? null : { ...response.trace.model },
     promptVersion: response.trace.promptVersion,
@@ -68,4 +79,29 @@ export function toRetentionBoundary(input: unknown): RetentionBoundary {
 /** Core → contract: what a retention request removed. */
 export function toRetentionResponse(result: RetentionResult): RetentionResponse {
   return { contractVersion: CONTRACT_VERSION, removed: { evidence: result.evidence, memory: result.memory } };
+}
+
+/** Contract → core: validates a wire response, for clients such as the evaluation harness. */
+export function fromAssistResponse(input: unknown): AssistanceResponse {
+  const wire = parse(AssistResponseSchema, input);
+  const p = wire.trace.policy;
+  const trace = {
+    bound: p === null ? null : { policyId: p.id, policyVersion: p.version, maxDepth: p.maxDepth, maxResponseChars: p.maxResponseChars, memory: p.memory },
+    materialIds: wire.trace.materialIds,
+    model: wire.trace.model,
+    promptVersion: wire.trace.promptVersion,
+  };
+  return wire.kind === 'answered'
+    ? { kind: 'answered', depth: wire.depth, text: wire.text, citations: wire.citations, truncated: wire.truncated, trace }
+    : { kind: 'refused', reason: wire.reason, trace };
+}
+
+/** Contract → core: validates a golden set file. */
+export function toGoldenSet(input: unknown): GoldenSet {
+  const wire = parse(GoldenSetSchema, input);
+  return {
+    id: wire.id,
+    version: wire.version,
+    cases: wire.cases.map((c) => ({ id: c.id, learner: defined(c.learner), question: c.question, expected: c.expected })),
+  };
 }

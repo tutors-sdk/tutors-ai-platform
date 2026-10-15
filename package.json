@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:integration": "vitest run --project integration",
     "mutation": "pnpm --filter @tutors-ai/core mutation",
-    "check": "pnpm typecheck && pnpm lint && pnpm ears && pnpm test"
+    "check": "pnpm typecheck && pnpm lint && pnpm ears && pnpm test",
+    "eval": "pnpm --filter @tutors-ai/evaluation -s eval"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

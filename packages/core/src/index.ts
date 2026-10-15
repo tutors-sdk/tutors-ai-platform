@@ -18,7 +18,7 @@ export type * from './ports/driven/policy-provider.ts';
 export * from './ports/driven/telemetry.ts';
 
 export type * from './ports/driving/assist-student.ts';
-export type * from './ports/driving/evaluate-capability.ts';
+export * from './ports/driving/evaluate-capability.ts';
 export type * from './ports/driving/explain-lab-insights.ts';
 export type * from './ports/driving/record-evidence.ts';
 export type * from './ports/driving/recommend-interventions.ts';
@@ -27,3 +27,4 @@ export type * from './ports/driving/apply-retention.ts';
 export * from './usecases/assist-student.ts';
 export * from './usecases/record-evidence.ts';
 export * from './usecases/apply-retention.ts';
+export * from './usecases/evaluate-capability.ts';

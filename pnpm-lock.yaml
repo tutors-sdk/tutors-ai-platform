@@ -162,6 +162,25 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  packages/evaluation:
+    dependencies:
+      '@tutors-ai/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@tutors-ai/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@tutors-ai/app-inference-api':
+        specifier: workspace:*
+        version: link:../../apps/inference-api
+      '@tutors-ai/testing':
+        specifier: workspace:*
+        version: link:../testing
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
   packages/testing:
     dependencies:
       '@tutors-ai/core':
