@@ -1,0 +1,9 @@
+{
+  "id": "first-year",
+  "version": "0.1.0",
+  "level": "first-year",
+  "maxDepth": "hint",
+  "memory": { "kind": "session", "sharing": "private" },
+  "maxResponseChars": 600,
+  "maxMaterial": 4
+}

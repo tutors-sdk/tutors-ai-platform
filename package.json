@@ -1,0 +1,29 @@
+{
+  "name": "tutors-ai-platform",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . && node scripts/check-boundaries.mjs",
+    "lint:boundaries": "node scripts/check-boundaries.mjs",
+    "ears": "node scripts/check-ears.mjs",
+    "test": "vitest run",
+    "test:integration": "vitest run --project integration",
+    "mutation": "pnpm --filter @tutors-ai/core mutation",
+    "check": "pnpm typecheck && pnpm lint && pnpm ears && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^7.3.7",
+    "vitest": "^4.1.4"
+  }
+}
