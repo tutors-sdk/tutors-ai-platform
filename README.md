@@ -17,18 +17,20 @@ The design commits to four things:
 
 ## Status
 
-Phase 1 (foundations) is in progress. It needs no cluster and no GPU.
+The platform is built: every port has an adapter or a deliberate deferral, both apps have images,
+and the infrastructure is code. It has not yet run on a real cluster.
 
-| Phase 1 item | State |
+| Area | State |
 | --- | --- |
-| Workspace, dependency lint, CI on every PR | Done |
-| `@tutors/ai-contract` 0.1: schemas, two capability levels, `MemoryScope`, evidence types | Done in `packages/contract`; the contract lives in this repository (ADR 0002) |
-| EARS files for the five driving and eight driven ports, and the CI gate | Done |
-| Core `AssistStudent` and `RecordEvidence` against fakes, mutation baseline | Done (core at 100%) |
-| Contract kits for `LanguageModel`, `CourseContent`, `EvidenceStore`, `LearnerMemory` (and `PolicyProvider`) | Done, green against fakes |
-| Ollama and course export adapters through their kits | Done against a wire stub and fixtures; real model in the CI integration job |
-| First four ADRs and this README | Done |
-| First golden set, ten cases per level, with a lecturer | Needs a lecturer |
+| Core: `AssistStudent`, `RecordEvidence`, `ApplyRetention`, `EvaluateCapability`, `ExplainLabInsights`, `RecommendInterventions` | Done; mutation score 100% |
+| `@tutors/ai-contract` 0.1 (ADR 0002) | Done in `packages/contract` |
+| Adapters: Ollama, course export, PostgreSQL (evidence, memory, insights), OpenTelemetry, system clock | Done, each through its contract kit; Ollama and PostgreSQL also against real services in CI |
+| `apps/inference-api` and `apps/insights-worker` | Done, with Containerfiles; CI builds both images and pushes from `main` when registry credentials are set |
+| Evaluation harness (`pnpm eval`) | Done; waits on golden sets |
+| Infrastructure: OpenShift overlays, ROSA HCP Terraform, policy checks | Written and checked in CI; never applied to a cluster or an AWS account |
+| Golden sets, ten cases per level | Need a lecturer |
+| Production model pin (Qwen 3.8 27B, ADR 0005) | Needs a first pull in staging (`infra/openshift/pin-model.sh`) |
+| Identity (Keycloak) and the release gate | Deferred (ADR 0005) |
 
 ## Layout
 
@@ -55,10 +57,14 @@ apps/
   inference-api/         composition root for the request path, over HTTP, and its Containerfile
   insights-worker/       composition root for the nightly insights run, and its Containerfile
 scripts/                 the EARS gate, the dependency boundary check, the mutation gate
+infra/
+  openshift/             kustomize base and staging/production overlays, network policies, model pin
+  aws/                   ROSA HCP cluster, VPC, GPU pool and EFS in Terraform
+  ci/                    check.sh and the conftest policies CI runs on every overlay
 ```
 
-Still to come, per the roadmap: `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
-gate are deferred (ADR 0005).
+`adapters/keycloak` and the release gate are deferred (ADR 0005). See `infra/README.md` to stand
+up staging.
 
 ## Dependency rules
 

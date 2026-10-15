@@ -1,0 +1,81 @@
+# Staging carries synthetic traffic only, so everything but the model itself is scaled down.
+# Ollama keeps enough memory to load the same pinned model production serves.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-api
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: inference-api
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  template:
+    spec:
+      containers:
+        - name: ollama
+          resources:
+            requests:
+              cpu: "2"
+              memory: 20Gi
+            limits:
+              cpu: "4"
+              memory: 40Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  template:
+    spec:
+      containers:
+        - name: postgres
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: insights-worker
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: insights-worker
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: course-exports
+spec:
+  resources:
+    requests:
+      storage: 5Gi

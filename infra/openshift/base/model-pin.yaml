@@ -1,0 +1,11 @@
+# The model the composition root names by digest (ADR 0003). The adapter refuses to answer when
+# the served weights differ, so this ConfigMap is the single statement of which weights are live.
+# Qwen 3.8 27B per ADR 0005. The digest is never guessed: run ../pin-model.sh <namespace> after
+# the first pull and commit the result to the overlay. CI fails production while it is UNPINNED.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-pin
+data:
+  OLLAMA_MODEL: qwen3.8:27b
+  OLLAMA_DIGEST: sha256:UNPINNED

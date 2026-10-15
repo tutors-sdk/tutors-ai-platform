@@ -1,0 +1,15 @@
+# Tutors course exports read by the CourseContent adapter. Both the API and the worker mount it
+# read-only, possibly on different nodes, so it needs a ReadWriteMany class (EFS on ROSA; see
+# infra/aws/README.md). Whatever publishes exports mounts it read-write; that job is not here yet.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: course-exports
+  labels:
+    app.kubernetes.io/name: course-exports
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 20Gi

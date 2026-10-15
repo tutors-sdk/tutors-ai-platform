@@ -1,0 +1,114 @@
+# Ollama, the first LanguageModel server (ADR 0003). One per environment, both on the shared GPU
+# node: the node needs one GPU per environment, or NVIDIA time-slicing (see infra/README.md).
+# Only the inference API may reach it (network-policies.yaml; enforced in CI).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+spec:
+  replicas: 1
+  # The model volume is ReadWriteOnce and the GPU is exclusive: never run two at once.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        # The image defaults to root; OpenShift's restricted SCC assigns an unprivileged UID.
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ollama
+          image: docker.io/ollama/ollama:0.12.3
+          ports:
+            - name: http
+              containerPort: 11434
+          env:
+            - name: HOME
+              value: /root
+            - name: OLLAMA_HOST
+              value: 0.0.0.0:11434
+            # Keep the pinned model resident; a cold load of 27B weights takes minutes.
+            - name: OLLAMA_KEEP_ALIVE
+              value: "-1"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "4"
+              memory: 24Gi
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "8"
+              memory: 48Gi
+              nvidia.com/gpu: 1
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+  labels:
+    app.kubernetes.io/name: ollama
+spec:
+  accessModes: [ReadWriteOnce]
+  # Cluster default class (gp3-csi on ROSA).
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ollama
+  ports:
+    - name: http
+      port: 11434
+      targetPort: http

@@ -84,3 +84,29 @@ jobs:
           podman push "$IMAGE:sha-${GITHUB_SHA::12}"
           podman tag "$IMAGE:sha-${GITHUB_SHA::12}" "$IMAGE:main"
           podman push "$IMAGE:main"
+
+  infra:
+    name: Infrastructure (kustomize, kubeconform, conftest, terraform)
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: 5.4.3
+      KUBECONFORM_VERSION: 0.6.7
+      CONFTEST_VERSION: 0.56.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Install kustomize, kubeconform and conftest
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" kustomize
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" kubeconform
+          curl -sSfL "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" conftest
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Staging (strict) and Terraform
+        run: infra/ci/check.sh staging
+      # Once production is pinned, drop --expect-unpinned; check.sh fails if it is left in.
+      - name: Production (every policy but the model pin, which must still be UNPINNED)
+        run: infra/ci/check.sh --skip-terraform --expect-unpinned production

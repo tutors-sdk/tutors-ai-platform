@@ -1,0 +1,37 @@
+# Staging: synthetic learners only, smaller sizes, images from main. CI deploys here on merge.
+# Its own PostgreSQL and Ollama; it shares only the GPU node with production.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: tutors-ai-staging
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+labels:
+  - pairs:
+      tutors-ai/environment: staging
+      tutors-ai/data: synthetic-learners-only
+    includeTemplates: true
+
+commonAnnotations:
+  tutors-ai/data-policy: Synthetic learners only. Real student data must never be loaded here.
+
+# The deploy job replaces newTag with the merge commit's sha-<commit> tag before applying.
+images:
+  - name: quay.io/tutors-sdk/tutors-ai-inference-api
+    newTag: main
+  - name: quay.io/tutors-sdk/tutors-ai-insights-worker
+    newTag: main
+
+patches:
+  - path: model-pin.yaml
+  - path: sizes.yaml
+  - target:
+      kind: StatefulSet
+      name: postgres
+    patch: |-
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 10Gi

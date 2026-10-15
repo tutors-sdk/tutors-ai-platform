@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tutors-ai-staging
+  labels:
+    tutors-ai/environment: staging
+    tutors-ai/data: synthetic-learners-only
+  annotations:
+    openshift.io/description: Tutors AI platform staging. Synthetic learners only.

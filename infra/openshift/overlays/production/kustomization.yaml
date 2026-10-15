@@ -1,0 +1,25 @@
+# Production: real learners. Reached only by manual promotion of what passed staging: a pull
+# request that moves the image tags below and records the model digest in model-pin.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: tutors-ai-production
+
+resources:
+  - namespace.yaml
+  - ../../base
+
+labels:
+  - pairs:
+      tutors-ai/environment: production
+    includeTemplates: true
+
+# The release tag that passed staging. Promotion changes these two lines and nothing else.
+images:
+  - name: quay.io/tutors-sdk/tutors-ai-inference-api
+    newTag: "0.1.0"
+  - name: quay.io/tutors-sdk/tutors-ai-insights-worker
+    newTag: "0.1.0"
+
+patches:
+  - path: model-pin.yaml

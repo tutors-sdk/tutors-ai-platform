@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Region and instance types have no
+# defaults: the design leaves sizes to this phase. Check availability with
+#   rosa list regions --hosted-cp
+#   rosa list instance-types --region <region>
+
+region               = "REGION"              # e.g. eu-west-1
+worker_instance_type = "CPU_INSTANCE_TYPE"   # e.g. m6i.2xlarge
+gpu_instance_type    = "GPU_INSTANCE_TYPE"   # two GPUs, or one with time-slicing; enough VRAM for a 27B model
+
+# Optional
+# cluster_name      = "tutors-ai"
+# openshift_version = "4.x.y"                # pin for reproducibility: rosa list versions --hosted-cp
+# vpc_cidr          = "10.0.0.0/16"
+# gpu_disk_size     = 300
+# tags              = { owner = "tutors" }
