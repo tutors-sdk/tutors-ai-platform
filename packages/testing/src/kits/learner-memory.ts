@@ -74,11 +74,37 @@ export function learnerMemoryContract(name: string, subject: LearnerMemorySubjec
     it('LMEM-008 erases every entry a learner wrote and reports how many', async () => {
       const memory = await subject.memory();
       await memory.remember(aLearner(), SESSION, write('q1'));
-      await memory.remember(aLearner(), COURSE, write('q2'));
+      await memory.remember(aLearner(), PROGRAMME, write('q2'));
       await memory.remember(aLearner({ learnerId: 'learner-2' }), SESSION, write('q3'));
-      expect(await memory.erase('learner-1')).toBe(2);
+      expect(await memory.expire({ kind: 'learner', learnerId: 'learner-1' })).toBe(2);
       expect(await memory.recall(aLearner(), COURSE, 10)).toEqual([]);
       expect(await memory.recall(aLearner({ learnerId: 'learner-2' }), SESSION, 10)).toHaveLength(1);
+    });
+
+    it('LMEM-009 forgets session memory at the end of that session only', async () => {
+      const memory = await subject.memory();
+      await memory.remember(aLearner(), SESSION, write('q1'));
+      await memory.remember(aLearner({ sessionId: 'session-2' }), SESSION, write('q2'));
+      await memory.remember(aLearner(), COURSE, write('q3'));
+      expect(await memory.expire({ kind: 'session', sessionId: 'session-1' })).toBe(1);
+      expect((await memory.recall(aLearner({ sessionId: 'session-2' }), SESSION, 10)).map((e) => e.question)).toEqual(['q2']);
+      expect((await memory.recall(aLearner(), COURSE, 10)).map((e) => e.question)).toEqual(['q2', 'q3']);
+    });
+
+    it('LMEM-010 forgets session and course memory at the end of that course, keeping programme memory', async () => {
+      const memory = await subject.memory();
+      await memory.remember(aLearner(), SESSION, write('q1'));
+      await memory.remember(aLearner(), COURSE, write('q2'));
+      await memory.remember(aLearner(), PROGRAMME, write('q3'));
+      await memory.remember(aLearner({ courseId: 'course-2' }), COURSE, write('q4'));
+      expect(await memory.expire({ kind: 'course', courseId: 'course-1' })).toBe(2);
+      expect((await memory.recall(aLearner(), PROGRAMME, 10)).map((e) => e.question)).toEqual(['q3', 'q4']);
+    });
+
+    it('LMEM-011 records the scope kind each entry was written under', async () => {
+      const memory = await subject.memory();
+      await memory.remember(aLearner(), COURSE, write('q1'));
+      expect((await memory.recall(aLearner(), COURSE, 10))[0]?.retention).toBe('course');
     });
   });
 }

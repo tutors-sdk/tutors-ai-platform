@@ -1,4 +1,4 @@
-import type { EvidenceQuery, EvidenceStore, NewEvidence, RecordedEvidence, RetentionBoundary } from '@tutors-ai/core';
+import { endsAt, type EvidenceQuery, type EvidenceStore, type NewEvidence, type RecordedEvidence, type RetentionBoundary } from '@tutors-ai/core';
 import type { Clock } from '@tutors-ai/core';
 
 export class InMemoryEvidenceStore implements EvidenceStore {
@@ -36,18 +36,8 @@ export class InMemoryEvidenceStore implements EvidenceStore {
 
   async expire(boundary: RetentionBoundary): Promise<number> {
     const before = this.#records.length;
-    this.#records = this.#records.filter((r) => !expires(r, boundary));
+    this.#records = this.#records.filter((r) => !endsAt(boundary, r));
     return before - this.#records.length;
   }
 }
 
-export function expires(r: RecordedEvidence, boundary: RetentionBoundary): boolean {
-  switch (boundary.kind) {
-    case 'session':
-      return r.retention === 'session' && r.sessionId === boundary.sessionId;
-    case 'course':
-      return (r.retention === 'session' || r.retention === 'course') && r.courseId === boundary.courseId;
-    case 'learner':
-      return r.learnerId === boundary.learnerId;
-  }
-}

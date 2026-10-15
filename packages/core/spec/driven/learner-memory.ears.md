@@ -18,3 +18,6 @@ What a learner's assistant remembers, bounded by memory scope and sharing. Verif
 - **LMEM-006** Where both the writer's and the reader's scope share with the cohort, the LearnerMemory adapter shall recall cohort-shared entries for other learners in the same course.
 - **LMEM-007** The LearnerMemory adapter shall recall at most the requested number of entries, keeping the most recent, oldest first.
 - **LMEM-008** When a learner asks for erasure, the LearnerMemory adapter shall remove every entry the learner wrote and report how many were removed.
+- **LMEM-009** When a session ends, the LearnerMemory adapter shall remove entries written under `session` scope in that session only.
+- **LMEM-010** When a course ends, the LearnerMemory adapter shall remove entries written under `session` or `course` scope in that course and keep `programme` entries.
+- **LMEM-011** The LearnerMemory adapter shall keep with every entry the scope kind it was written under.

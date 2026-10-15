@@ -1,9 +1,7 @@
 import type { EvidenceQuery, NewEvidence, RecordedEvidence } from '../../domain/evidence.ts';
+import type { RetentionBoundary } from '../../domain/retention.ts';
 
-export type RetentionBoundary =
-  | { readonly kind: 'session'; readonly sessionId: string }
-  | { readonly kind: 'course'; readonly courseId: string }
-  | { readonly kind: 'learner'; readonly learnerId: string };
+export type { RetentionBoundary };
 
 /** Driven port: append-only learning evidence. */
 export interface EvidenceStore {

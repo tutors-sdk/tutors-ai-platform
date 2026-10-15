@@ -2,7 +2,7 @@
 id: CLK
 port: Clock
 kind: driven
-status: planned
+status: implemented
 ---
 
 # Clock

@@ -6,6 +6,7 @@ export * from './domain/learner.ts';
 export * from './domain/material.ts';
 export * from './domain/memory.ts';
 export * from './domain/policy.ts';
+export * from './domain/retention.ts';
 
 export type * from './ports/driven/clock.ts';
 export type * from './ports/driven/course-content.ts';
@@ -21,6 +22,8 @@ export type * from './ports/driving/evaluate-capability.ts';
 export type * from './ports/driving/explain-lab-insights.ts';
 export type * from './ports/driving/record-evidence.ts';
 export type * from './ports/driving/recommend-interventions.ts';
+export type * from './ports/driving/apply-retention.ts';
 
 export * from './usecases/assist-student.ts';
 export * from './usecases/record-evidence.ts';
+export * from './usecases/apply-retention.ts';

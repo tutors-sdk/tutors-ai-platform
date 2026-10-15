@@ -44,15 +44,18 @@ packages/
     ollama/              LanguageModel: prompts, structured output, streaming, digest pinning
     postgres/            EvidenceStore and LearnerMemory, scope and retention enforced in SQL
     course-content/      CourseContent over a Tutors course export
+    otel/                Telemetry over OpenTelemetry: spans, per-level metrics, nothing per learner
+    system/              the system Clock
   testing/               contract-test kits, fakes and builders, written against ports
 docs/
   adr/                   architecture decision records
   c4/                    the C4 model as code (Structurizr DSL)
+apps/
+  inference-api/         composition root for the request path, over HTTP, and its Containerfile
 scripts/                 the EARS gate, the dependency boundary check, the mutation gate
 ```
 
-Still to come, per the roadmap: `adapters/otel`, `evaluation/`, `apps/inference-api`,
-`apps/insights-worker` and `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
+Still to come, per the roadmap: `evaluation/`, `apps/insights-worker` and `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
 gate are deferred (ADR 0005).
 
 ## Dependency rules
@@ -93,6 +96,31 @@ ollama pull qwen2.5:0.5b
 export OLLAMA_URL=http://localhost:11434 OLLAMA_MODEL=qwen2.5:0.5b
 export OLLAMA_DIGEST=sha256:$(curl -s $OLLAMA_URL/api/tags | jq -r '.models[] | select(.name=="qwen2.5:0.5b") | .digest')
 pnpm test:integration
+```
+
+### The inference API
+
+`apps/inference-api` wires every adapter to the core and serves contract 0.1 over HTTP:
+
+| Endpoint | Does |
+| --- | --- |
+| `POST /v0/assist` | `AssistStudent`: an `AssistRequest` in, an `AssistResponse` out |
+| `POST /v0/evidence` | `RecordEvidence`: a `RecordEvidenceRequest` in, `201` with its sequence |
+| `POST /v0/retention` | `ApplyRetention`: end a session or course, or erase a learner |
+| `GET /healthz`, `GET /readyz` | liveness; readiness checks PostgreSQL |
+
+A request that breaks the contract or a domain rule gets `400` naming what was wrong. Bodies are
+capped at 64 KB. There is no streaming endpoint on purpose: the core checks depth, citations and
+length on the complete answer, so streaming would show learners text nobody has checked.
+
+It reads `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_DIGEST` (required, a sha256: models are pinned),
+`PG_URL`, `COURSE_EXPORT_DIR` (a folder of course export `*.json`), and optionally `PORT`,
+`PG_SCHEMA`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `EVIDENCE_SOURCE`, `MODEL_TIMEOUT_MS`,
+`MEMORY_RECALL_LIMIT` and `MAX_CLOCK_SKEW_MS`. It migrates its schema on start.
+
+```sh
+pnpm --filter @tutors-ai/app-inference-api build && node apps/inference-api/dist/main.mjs
+podman build -f apps/inference-api/Containerfile -t inference-api .
 ```
 
 ### The gates

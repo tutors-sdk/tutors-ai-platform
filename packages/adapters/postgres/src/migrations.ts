@@ -50,6 +50,15 @@ const MIGRATIONS: readonly { readonly id: string; readonly up: (s: string) => st
       create index learner_memory_cohort_idx on ${s}.learner_memory (course_id, id) where sharing = 'cohort';
     `,
   },
+  {
+    id: '002-memory-retention',
+    up: (s) => `
+      -- Memory now records the scope it was kept for, so a session or course end can expire it (docs/adr/0004).
+      alter table ${s}.learner_memory
+        add column retention text not null default 'course' check (retention in ('session', 'course', 'programme'));
+      create index learner_memory_session_idx on ${s}.learner_memory (session_id) where retention = 'session';
+    `,
+  },
 ];
 
 /** Applies any migrations not yet recorded in `<schema>.schema_migrations`. Safe to run on every start. */

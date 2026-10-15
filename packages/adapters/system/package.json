@@ -1,0 +1,17 @@
+{
+  "name": "@tutors-ai/adapter-system",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Adapters over the host itself: the system Clock.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

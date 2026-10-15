@@ -20,6 +20,8 @@ import {
   toAssistanceRequest,
   toAssistResponse,
   toNewEvidence,
+  toRetentionBoundary,
+  toRetentionResponse,
 } from '../src/index.ts';
 
 policyProviderContract('ContractPolicyProvider', {
@@ -104,6 +106,14 @@ describe('contract adapter', () => {
       retention: 'course',
     });
     expect(() => toNewEvidence({ ...evidence, contractVersion: CONTRACT_VERSION, observedAt: 'yesterday' })).toThrow(ContractViolation);
+  });
+
+  it('maps a retention request to a boundary and its result back to the wire', () => {
+    expect(toRetentionBoundary({ contractVersion: CONTRACT_VERSION, boundary: { kind: 'course', courseId: 'c1' } })).toEqual({ kind: 'course', courseId: 'c1' });
+    expect(() => toRetentionBoundary({ contractVersion: CONTRACT_VERSION, boundary: { kind: 'course', learnerId: 'l1' } })).toThrow(ContractViolation);
+    expect(() => toRetentionBoundary({ contractVersion: CONTRACT_VERSION, boundary: { kind: 'session', sessionId: ' ' } })).toThrow(ContractViolation);
+    const wire = toRetentionResponse({ evidence: 3, memory: 1 });
+    expect(contract.RetentionResponse.parse(wire)).toEqual({ contractVersion: CONTRACT_VERSION, removed: { evidence: 3, memory: 1 } });
   });
 
   it('drives AssistStudent end to end from a wire request to a wire response', async () => {
