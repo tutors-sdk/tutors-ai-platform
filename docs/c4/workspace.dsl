@@ -8,7 +8,7 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         student = person "Student" "Uses Tutors to work through courses and labs."
         lecturer = person "Lecturer" "Authors courses and reviews insights and recommendations."
 
-        tutors = softwareSystem "Tutors (tutors-mono-repo)" "Reader, catalogue, live and time apps. Publishes @tutors/ai-contract and the course export." "External"
+        tutors = softwareSystem "Tutors (tutors-mono-repo)" "Reader, catalogue, live and time apps. Pins @tutors/ai-contract and publishes the course export." "External"
 
         platform = softwareSystem "Tutors AI Platform" "Open-weight inference, evidence and insights on OpenShift on AWS." {
             inferenceApi = container "inference-api" "Composition root. Validates tokens, maps the contract to driving ports, wires adapters." "TypeScript" {

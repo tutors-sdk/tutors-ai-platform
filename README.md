@@ -22,7 +22,7 @@ Phase 1 (foundations) is in progress. It needs no cluster and no GPU.
 | Phase 1 item | State |
 | --- | --- |
 | Workspace, dependency lint, CI on every PR | Done |
-| `@tutors/ai-contract` 0.1 draft: schemas, two capability levels, `MemoryScope`, evidence types | Drafted in `packages/contract` (home still open, see ADR 0002) |
+| `@tutors/ai-contract` 0.1: schemas, two capability levels, `MemoryScope`, evidence types | Done in `packages/contract`; the contract lives in this repository (ADR 0002) |
 | EARS files for the five driving and eight driven ports, and the CI gate | Done |
 | Core `AssistStudent` and `RecordEvidence` against fakes, mutation baseline | Done (core at 100%) |
 | Contract kits for `LanguageModel`, `CourseContent`, `EvidenceStore`, `LearnerMemory` (and `PolicyProvider`) | Done, green against fakes |
@@ -39,7 +39,7 @@ packages/
     src/ports/           driving and driven port interfaces
     src/usecases/        one file per driving port
     spec/                EARS files, one per port
-  contract/              draft @tutors/ai-contract 0.1, policies, the contract adapter
+  contract/              @tutors/ai-contract 0.1, policies, golden sets, the contract adapter
   adapters/
     ollama/              LanguageModel: prompts, structured output, streaming, digest pinning
     course-content/      CourseContent over a Tutors course export

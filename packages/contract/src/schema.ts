@@ -1,9 +1,7 @@
 /**
- * Draft of @tutors/ai-contract 0.1: the versioned, model-independent seam
- * between tutors-mono-repo and this platform.
- *
- * The design has the monorepo publish this package; until that home is
- * decided (docs/adr/0002), the draft lives here so both sides can review it.
+ * @tutors/ai-contract 0.1: the versioned, model-independent seam between
+ * tutors-mono-repo and this platform. It lives and is published from this
+ * repository; the monorepo pins it (docs/adr/0002).
  * Nothing in this file may name a model, a serving stack or a cloud.
  */
 import { z } from 'zod';
