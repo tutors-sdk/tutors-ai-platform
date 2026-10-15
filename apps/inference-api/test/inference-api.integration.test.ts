@@ -60,6 +60,7 @@ describe.skipIf(!enabled)('inference-api against PostgreSQL and Ollama', () => {
 
     const retention = await post('/v0/retention', { contractVersion: CONTRACT_VERSION, boundary: { kind: 'session', sessionId: 'it-session' } });
     expect(retention.status).toBe(200);
-    expect(contract.RetentionResponse.parse(await retention.json()).removed.evidence).toBeGreaterThanOrEqual(2);
+    // An answer records the request and what was given; a refusal records the request only.
+    expect(contract.RetentionResponse.parse(await retention.json()).removed.evidence).toBe(body.kind === 'answered' ? 2 : 1);
   });
 });
