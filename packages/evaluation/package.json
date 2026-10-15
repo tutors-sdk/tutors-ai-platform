@@ -1,0 +1,27 @@
+{
+  "name": "@tutors-ai/evaluation",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "The evaluation harness: runs golden sets through a running inference API, judges them and reports drift.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "tutors-ai-eval": "./dist/cli.mjs"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/cli.mjs",
+    "eval": "pnpm -s build && node dist/cli.mjs"
+  },
+  "dependencies": {
+    "@tutors-ai/contract": "workspace:*",
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@tutors-ai/app-inference-api": "workspace:*",
+    "@tutors-ai/testing": "workspace:*",
+    "esbuild": "^0.28.2"
+  }
+}

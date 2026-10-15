@@ -2,13 +2,13 @@
 id: EC
 port: EvaluateCapability
 kind: driving
-status: planned
+status: implemented
 ---
 
 # EvaluateCapability
 
 Run a golden set against the current model and policy, through the same composition root as
-production. Planned for phase 3.
+production. `packages/evaluation` drives it against a running inference API over HTTP.
 
 - **EC-001** When a golden set is evaluated, the EvaluateCapability use case shall drive every case through AssistStudent exactly as a student request would be.
 - **EC-002** The EvaluateCapability use case shall record in every report the model name and digest, the prompt version, the policy versions and the golden set version.
