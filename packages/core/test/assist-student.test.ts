@@ -144,7 +144,7 @@ describe('AssistStudent', () => {
     const memory = {
       recall: async () => (calls.push('recall'), []),
       remember: async () => void calls.push('remember'),
-      erase: async () => 0,
+      expire: async () => 0,
     };
     const service = new AssistStudentService({ ...s, memory });
     expect(await service.assist(ask({ memory: { kind: 'none', sharing: 'private' } }))).toMatchObject({ kind: 'answered' });

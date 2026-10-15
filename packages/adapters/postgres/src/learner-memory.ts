@@ -1,4 +1,4 @@
-import type { LearnerContext, LearnerMemory, MemoryEntry, MemoryScope, MemoryWrite } from '@tutors-ai/core';
+import type { LearnerContext, LearnerMemory, MemoryEntry, MemoryScope, MemoryWrite, RetentionBoundary } from '@tutors-ai/core';
 import { schemaName, type SqlClient } from './sql.ts';
 
 interface MemoryRow {
@@ -7,6 +7,7 @@ interface MemoryRow {
   course_id: string;
   programme_id: string | null;
   sharing: MemoryEntry['sharing'];
+  retention: MemoryEntry['retention'];
   recorded_at: Date;
   question: string;
   answer: string;
@@ -29,7 +30,7 @@ export class PostgresLearnerMemory implements LearnerMemory {
     if (scope.kind === 'none' || limit <= 0) return [];
     // $1 learner, $2 session, $3 course, $4 programme, $5 scope kind, $6 reader shares with cohort, $7 limit
     const { rows } = await this.#sql.query<MemoryRow>(
-      `select learner_id, session_id, course_id, programme_id, sharing, recorded_at, question, answer
+      `select learner_id, session_id, course_id, programme_id, sharing, retention, recorded_at, question, answer
        from (
          select * from ${this.#table}
          where (
@@ -61,6 +62,7 @@ export class PostgresLearnerMemory implements LearnerMemory {
       courseId: r.course_id,
       ...(r.programme_id === null ? {} : { programmeId: r.programme_id }),
       sharing: r.sharing,
+      retention: r.retention,
       recordedAt: new Date(r.recorded_at),
       question: r.question,
       answer: r.answer,
@@ -70,14 +72,15 @@ export class PostgresLearnerMemory implements LearnerMemory {
   async remember(learner: LearnerContext, scope: MemoryScope, entry: MemoryWrite): Promise<void> {
     if (scope.kind === 'none') return;
     await this.#sql.query(
-      `insert into ${this.#table} (learner_id, session_id, course_id, programme_id, sharing, recorded_at, question, answer)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      `insert into ${this.#table} (learner_id, session_id, course_id, programme_id, sharing, retention, recorded_at, question, answer)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         learner.learnerId,
         learner.sessionId,
         learner.courseId,
         learner.programmeId ?? null,
         scope.sharing,
+        scope.kind,
         entry.recordedAt,
         entry.question,
         entry.answer,
@@ -85,8 +88,14 @@ export class PostgresLearnerMemory implements LearnerMemory {
     );
   }
 
-  async erase(learnerId: string): Promise<number> {
-    const { rows } = await this.#sql.query(`delete from ${this.#table} where learner_id = $1 returning id`, [learnerId]);
+  async expire(boundary: RetentionBoundary): Promise<number> {
+    const [where, id] =
+      boundary.kind === 'session'
+        ? [`retention = 'session' and session_id = $1`, boundary.sessionId]
+        : boundary.kind === 'course'
+          ? [`retention in ('session', 'course') and course_id = $1`, boundary.courseId]
+          : [`learner_id = $1`, boundary.learnerId];
+    const { rows } = await this.#sql.query(`delete from ${this.#table} where ${where} returning id`, [id]);
     return rows.length;
   }
 }

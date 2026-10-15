@@ -1,6 +1,7 @@
 import type { MemoryScope } from '../../domain/capability.ts';
 import type { LearnerContext } from '../../domain/learner.ts';
 import type { MemoryEntry } from '../../domain/memory.ts';
+import type { RetentionBoundary } from '../../domain/retention.ts';
 
 export interface MemoryWrite {
   readonly question: string;
@@ -19,6 +20,9 @@ export interface LearnerMemory {
   recall(learner: LearnerContext, scope: MemoryScope, limit: number): Promise<readonly MemoryEntry[]>;
   /** Stores an entry under `scope`; a `none` scope stores nothing. */
   remember(learner: LearnerContext, scope: MemoryScope, entry: MemoryWrite): Promise<void>;
-  /** Removes every entry the learner wrote. Returns the number removed. */
-  erase(learnerId: string): Promise<number>;
+  /**
+   * Removes entries whose retention ends at this boundary (see `endsAt`): a
+   * learner boundary removes every entry the learner wrote. Returns the number removed.
+   */
+  expire(boundary: RetentionBoundary): Promise<number>;
 }

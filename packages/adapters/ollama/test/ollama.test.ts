@@ -86,6 +86,7 @@ describe('prompt template', () => {
             sessionId: 's',
             courseId: 'c',
             sharing: 'private',
+            retention: 'session',
             recordedAt: new Date(),
             question: 'earlier?',
             answer: 'earlier.',

@@ -1,0 +1,27 @@
+{
+  "name": "@tutors-ai/app-inference-api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Composition root for the request path: AssistStudent, RecordEvidence and ApplyRetention over HTTP.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist/main.mjs"
+  },
+  "dependencies": {
+    "@tutors-ai/adapter-course-content": "workspace:*",
+    "@tutors-ai/adapter-ollama": "workspace:*",
+    "@tutors-ai/adapter-otel": "workspace:*",
+    "@tutors-ai/adapter-postgres": "workspace:*",
+    "@tutors-ai/adapter-system": "workspace:*",
+    "@tutors-ai/contract": "workspace:*",
+    "@tutors-ai/core": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*",
+    "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2"
+  }
+}

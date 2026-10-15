@@ -2,12 +2,12 @@
 id: TEL
 port: Telemetry
 kind: driven
-status: planned
+status: implemented
 ---
 
 # Telemetry
 
-Tracing, model metrics and the evidence-trail log (OpenTelemetry by default). Planned for phase 2.
+Tracing, model metrics and the evidence-trail log (OpenTelemetry by default).
 
 - **TEL-001** When a span is started, the Telemetry adapter shall export it with its attributes and outcome once it ends.
 - **TEL-002** The Telemetry adapter shall aggregate model metrics per capability level and never per learner.

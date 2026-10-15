@@ -1,9 +1,11 @@
-import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence } from '@tutors-ai/core';
+import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence, RetentionBoundary, RetentionResult } from '@tutors-ai/core';
 import {
   AssistRequest,
   CONTRACT_VERSION,
   RecordEvidenceRequest,
+  RetentionRequest,
   type AssistResponse,
+  type RetentionResponse,
 } from './schema.ts';
 
 /** Drops keys whose value is undefined, so optional fields stay absent rather than undefined. */
@@ -56,4 +58,14 @@ export function toAssistResponse(response: AssistanceResponse): AssistResponse {
 export function toNewEvidence(input: unknown): NewEvidence {
   const { contractVersion: _version, observedAt, ...rest } = parse(RecordEvidenceRequest, input);
   return { ...defined(rest), observedAt: new Date(observedAt) };
+}
+
+/** Contract → core: validates a wire retention request and builds the boundary. */
+export function toRetentionBoundary(input: unknown): RetentionBoundary {
+  return parse(RetentionRequest, input).boundary;
+}
+
+/** Core → contract: what a retention request removed. */
+export function toRetentionResponse(result: RetentionResult): RetentionResponse {
+  return { contractVersion: CONTRACT_VERSION, removed: { evidence: result.evidence, memory: result.memory } };
 }

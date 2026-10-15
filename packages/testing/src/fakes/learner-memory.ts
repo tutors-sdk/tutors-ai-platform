@@ -1,4 +1,4 @@
-import type { LearnerContext, LearnerMemory, MemoryEntry, MemoryScope, MemoryWrite } from '@tutors-ai/core';
+import { endsAt, type LearnerContext, type LearnerMemory, type MemoryEntry, type MemoryScope, type MemoryWrite, type RetentionBoundary } from '@tutors-ai/core';
 
 export class InMemoryLearnerMemory implements LearnerMemory {
   #entries: MemoryEntry[] = [];
@@ -21,13 +21,14 @@ export class InMemoryLearnerMemory implements LearnerMemory {
       courseId: learner.courseId,
       ...(learner.programmeId === undefined ? {} : { programmeId: learner.programmeId }),
       sharing: scope.sharing,
+      retention: scope.kind,
       ...entry,
     });
   }
 
-  async erase(learnerId: string): Promise<number> {
+  async expire(boundary: RetentionBoundary): Promise<number> {
     const before = this.#entries.length;
-    this.#entries = this.#entries.filter((e) => e.learnerId !== learnerId);
+    this.#entries = this.#entries.filter((e) => !endsAt(boundary, e));
     return before - this.#entries.length;
   }
 }

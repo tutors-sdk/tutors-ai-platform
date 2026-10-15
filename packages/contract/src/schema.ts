@@ -101,6 +101,25 @@ export const RecordEvidenceRequest = z
   })
   .strict();
 
+/**
+ * A retention boundary: the end of a session or course, or a learner's
+ * erasure request. Data kept for that scope ends (docs/adr/0004).
+ */
+export const RetentionRequest = z
+  .object({
+    contractVersion: z.literal(CONTRACT_VERSION),
+    boundary: z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('session'), sessionId: id }).strict(),
+      z.object({ kind: z.literal('course'), courseId: id }).strict(),
+      z.object({ kind: z.literal('learner'), learnerId: id }).strict(),
+    ]),
+  })
+  .strict();
+
+export const RetentionResponse = z
+  .object({ contractVersion: z.literal(CONTRACT_VERSION), removed: z.object({ evidence: z.number().int(), memory: z.number().int() }) })
+  .strict();
+
 /** A pedagogical policy as published in the contract package. */
 export const Policy = z
   .object({
@@ -137,5 +156,7 @@ export const GoldenSet = z
 export type AssistRequest = z.infer<typeof AssistRequest>;
 export type AssistResponse = z.infer<typeof AssistResponse>;
 export type RecordEvidenceRequest = z.infer<typeof RecordEvidenceRequest>;
+export type RetentionRequest = z.infer<typeof RetentionRequest>;
+export type RetentionResponse = z.infer<typeof RetentionResponse>;
 export type Policy = z.infer<typeof Policy>;
 export type GoldenSet = z.infer<typeof GoldenSet>;
