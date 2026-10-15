@@ -12,3 +12,5 @@ export * from './kits/evidence-store.ts';
 export * from './kits/language-model.ts';
 export * from './kits/learner-memory.ts';
 export * from './kits/policy-provider.ts';
+export * from './fakes/insight-store.ts';
+export * from './kits/insight-store.ts';

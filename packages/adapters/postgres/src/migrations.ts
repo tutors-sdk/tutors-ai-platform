@@ -59,6 +59,20 @@ const MIGRATIONS: readonly { readonly id: string; readonly up: (s: string) => st
       create index learner_memory_session_idx on ${s}.learner_memory (session_id) where retention = 'session';
     `,
   },
+  {
+    id: '003-insight-runs',
+    up: (s) => `
+      -- One row per run of the insights worker; insights hold aggregates and sequences, never learner ids.
+      create table ${s}.insight_runs (
+        id               bigserial primary key,
+        course_id        text not null,
+        produced_at      timestamptz not null,
+        insights         jsonb not null,
+        recommendations  jsonb not null
+      );
+      create index insight_runs_course_idx on ${s}.insight_runs (course_id, produced_at desc, id desc);
+    `,
+  },
 ];
 
 /** Applies any migrations not yet recorded in `<schema>.schema_migrations`. Safe to run on every start. */

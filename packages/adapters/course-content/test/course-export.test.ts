@@ -61,3 +61,11 @@ describe('course export', () => {
     expect(node.map((x) => x.id)).toEqual(['full-stack-1/topic-02-node/lab-03-modules/00#0']);
   });
 });
+
+describe('loadCourseExports', () => {
+  it('loads every course export in a directory, in name order', async () => {
+    const { loadCourseExports } = await import('../src/index.ts');
+    const dir = new URL('./fixtures', import.meta.url).pathname;
+    expect((await loadCourseExports(dir)).map((c) => c.id)).toEqual(['databases-1', 'full-stack-1']);
+  });
+});

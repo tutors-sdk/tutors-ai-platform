@@ -6,6 +6,8 @@ import {
   FixedClock,
   InMemoryCourseContent,
   InMemoryEvidenceStore,
+  InMemoryInsightStore,
+  insightStoreContract,
   InMemoryLearnerMemory,
   languageModelContract,
   learnerMemoryContract,
@@ -49,3 +51,5 @@ policyProviderContract('StaticPolicyProvider', {
   courseId: 'course-1',
   levels: ['first-year', 'final-year'],
 });
+
+insightStoreContract('InMemoryInsightStore', { store: () => new InMemoryInsightStore() });

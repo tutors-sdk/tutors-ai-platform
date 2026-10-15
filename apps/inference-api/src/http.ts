@@ -4,11 +4,12 @@ import {
   ContractViolation,
   toAssistanceRequest,
   toAssistResponse,
+  toInsightsResponse,
   toNewEvidence,
   toRetentionBoundary,
   toRetentionResponse,
 } from '@tutors-ai/contract';
-import { DomainRuleViolation, PortError, type ApplyRetention, type AssistStudent, type RecordEvidence } from '@tutors-ai/core';
+import { DomainRuleViolation, PortError, type ApplyRetention, type AssistStudent, type InsightStore, type RecordEvidence } from '@tutors-ai/core';
 
 export const MAX_BODY_BYTES = 64 * 1024;
 
@@ -16,6 +17,8 @@ export interface Services {
   readonly assist: AssistStudent;
   readonly evidence: RecordEvidence;
   readonly retention: ApplyRetention;
+  /** Where the insights worker keeps its runs; read only here. */
+  readonly insights: Pick<InsightStore, 'latest'>;
   /** Whether every dependency the request path needs answers now. */
   ready(): Promise<boolean>;
 }
@@ -49,7 +52,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-type Route = (req: IncomingMessage) => Promise<{ status: number; body: unknown }>;
+type Route = (req: IncomingMessage, url: URL) => Promise<{ status: number; body: unknown }>;
 
 /**
  * The HTTP driving adapter. There is deliberately no streaming endpoint: the
@@ -70,6 +73,13 @@ export function createHandler(services: Services): RequestListener {
     '/v0/retention': {
       POST: async (req) => ({ status: 200, body: toRetentionResponse(await services.retention.apply(toRetentionBoundary(await readJson(req)))) }),
     },
+    '/v0/insights': {
+      GET: async (_req, url) => {
+        const courseId = url.searchParams.get('courseId')?.trim() ?? '';
+        if (courseId === '') throw new HttpError(400, { error: 'missing-course-id' });
+        return { status: 200, body: toInsightsResponse(courseId, await services.insights.latest(courseId)) };
+      },
+    },
     '/healthz': { GET: async () => ({ status: 200, body: { status: 'ok' } }) },
     '/readyz': {
       GET: async () => ((await services.ready().catch(() => false)) ? { status: 200, body: { status: 'ready' } } : { status: 503, body: { status: 'not-ready' } }),
@@ -77,13 +87,13 @@ export function createHandler(services: Services): RequestListener {
   };
 
   return (req: IncomingMessage, res: ServerResponse) => {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
-    const methods = routes[path];
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    const methods = routes[url.pathname];
     const handle = async () => {
       if (methods === undefined) throw new HttpError(404, { error: 'not-found' });
       const route = methods[req.method ?? 'GET'];
       if (route === undefined) throw new HttpError(405, { error: 'method-not-allowed' }, { allow: Object.keys(methods).join(', ') });
-      return route(req);
+      return route(req, url);
     };
     handle()
       .then(({ status, body }) => send(res, status, body))
