@@ -49,15 +49,27 @@ jobs:
           path: packages/core/reports/mutation/
 
   integration:
-    name: Adapter integration (Ollama, CPU model)
+    name: Adapter integration (Ollama CPU model, PostgreSQL)
     runs-on: ubuntu-latest
     services:
       ollama:
         image: ollama/ollama:0.12.3
         ports:
           - 11434:11434
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     env:
       OLLAMA_URL: http://localhost:11434
+      PG_URL: postgres://postgres:postgres@localhost:5432/postgres
       OLLAMA_MODEL: qwen2.5:0.5b
     steps:
       - uses: actions/checkout@v4

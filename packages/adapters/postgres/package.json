@@ -1,0 +1,19 @@
+{
+  "name": "@tutors-ai/adapter-postgres",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "EvidenceStore and LearnerMemory adapters over PostgreSQL, with scope and retention enforced in SQL.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*",
+    "@types/pg": "^8.23.1"
+  }
+}
