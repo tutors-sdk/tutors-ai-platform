@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { CONTRACT_VERSION, ContractPolicyProvider } from '@tutors-ai/contract';
 import { ApplyRetentionService, AssistStudentService, PortError, RecordEvidenceService } from '@tutors-ai/core';
-import { aMaterial, FakeLanguageModel, FixedClock, InMemoryCourseContent, InMemoryEvidenceStore, InMemoryLearnerMemory } from '@tutors-ai/testing';
+import { aMaterial, FakeLanguageModel, FixedClock, InMemoryCourseContent, InMemoryEvidenceStore, InMemoryInsightStore, InMemoryLearnerMemory } from '@tutors-ai/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHandler, MAX_BODY_BYTES, type Services } from '../src/http.ts';
 
@@ -27,6 +27,7 @@ function fakes(overrides: Partial<Services> = {}) {
     }),
     evidence: new RecordEvidenceService({ evidence, clock, maxClockSkewMs: 60_000 }),
     retention: new ApplyRetentionService({ evidence, memory }),
+    insights: new InMemoryInsightStore(),
     ready: async () => true,
     ...overrides,
   };
@@ -89,6 +90,18 @@ describe('inference-api over HTTP', () => {
     const res = await post(base, '/v0/retention', { contractVersion: CONTRACT_VERSION, boundary: { kind: 'session', sessionId: 's1' } });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ contractVersion: CONTRACT_VERSION, removed: { evidence: 2, memory: 1 } });
+  });
+
+  it('serves the latest insights run for a course, and an empty one before any run', async () => {
+    const insights = new InMemoryInsightStore();
+    await insights.save({ courseId: 'c1', producedAt: new Date('2026-10-15T02:00:00Z'), insights: [], recommendations: [] });
+    const base = await serve(fakes({ insights }).services);
+    const res = await fetch(`${base}/v0/insights?courseId=c1`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ contractVersion: CONTRACT_VERSION, courseId: 'c1', producedAt: '2026-10-15T02:00:00.000Z', insights: [], recommendations: [] });
+    expect(await (await fetch(`${base}/v0/insights?courseId=c2`)).json()).toMatchObject({ producedAt: null });
+    expect((await fetch(`${base}/v0/insights`)).status).toBe(400);
+    expect((await fetch(`${base}/v0/insights?courseId=%20`)).status).toBe(400);
   });
 
   it('rejects contract violations and domain rule violations with 400', async () => {

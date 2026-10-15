@@ -1,7 +1,7 @@
-import { anEvidence, evidenceStoreContract, FixedClock, learnerMemoryContract } from '@tutors-ai/testing';
+import { anEvidence, evidenceStoreContract, FixedClock, insightStoreContract, learnerMemoryContract } from '@tutors-ai/testing';
 import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
-import { migrate, PostgresEvidenceStore, PostgresLearnerMemory } from '../src/index.ts';
+import { migrate, PostgresEvidenceStore, PostgresInsightStore, PostgresLearnerMemory } from '../src/index.ts';
 
 // Runs both kits against a real PostgreSQL. CI starts one; locally:
 //   PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:integration
@@ -30,6 +30,9 @@ if (pool !== undefined) {
   });
   learnerMemoryContract('PostgresLearnerMemory', {
     memory: async () => new PostgresLearnerMemory(pool, await freshSchema()),
+  });
+  insightStoreContract('PostgresInsightStore', {
+    store: async () => new PostgresInsightStore(pool, await freshSchema()),
   });
 }
 

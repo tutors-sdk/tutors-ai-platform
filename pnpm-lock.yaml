@@ -67,6 +67,34 @@ importers:
         specifier: ^0.28.2
         version: 0.28.2
 
+  apps/insights-worker:
+    dependencies:
+      '@tutors-ai/adapter-course-content':
+        specifier: workspace:*
+        version: link:../../packages/adapters/course-content
+      '@tutors-ai/adapter-postgres':
+        specifier: workspace:*
+        version: link:../../packages/adapters/postgres
+      '@tutors-ai/adapter-system':
+        specifier: workspace:*
+        version: link:../../packages/adapters/system
+      '@tutors-ai/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
+    devDependencies:
+      '@tutors-ai/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
   packages/adapters/course-content:
     dependencies:
       '@tutors-ai/core':

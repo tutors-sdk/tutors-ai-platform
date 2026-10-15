@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createHandler } from '@tutors-ai/app-inference-api/src/http.ts';
 import { ContractPolicyProvider } from '@tutors-ai/contract';
 import { ApplyRetentionService, AssistStudentService, RecordEvidenceService, type EvaluationReport } from '@tutors-ai/core';
-import { aMaterial, FakeLanguageModel, FixedClock, InMemoryCourseContent, InMemoryEvidenceStore, InMemoryLearnerMemory } from '@tutors-ai/testing';
+import { aMaterial, FakeLanguageModel, FixedClock, InMemoryCourseContent, InMemoryEvidenceStore, InMemoryInsightStore, InMemoryLearnerMemory } from '@tutors-ai/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HttpAssistStudent, run } from '../src/index.ts';
 
@@ -29,6 +29,7 @@ beforeAll(async () => {
     }),
     evidence: new RecordEvidenceService({ evidence, clock, maxClockSkewMs: 0 }),
     retention: new ApplyRetentionService({ evidence, memory }),
+    insights: new InMemoryInsightStore(),
     ready: async () => true,
   });
   server = createServer(handler);

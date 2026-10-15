@@ -21,6 +21,7 @@ import {
   fromAssistResponse,
   toAssistResponse,
   toGoldenSet,
+  toInsightsResponse,
   toNewEvidence,
   toRetentionBoundary,
   toRetentionResponse,
@@ -139,6 +140,29 @@ describe('contract adapter', () => {
     expect(() => toRetentionBoundary({ contractVersion: CONTRACT_VERSION, boundary: { kind: 'session', sessionId: ' ' } })).toThrow(ContractViolation);
     const wire = toRetentionResponse({ evidence: 3, memory: 1 });
     expect(contract.RetentionResponse.parse(wire)).toEqual({ contractVersion: CONTRACT_VERSION, removed: { evidence: 3, memory: 1 } });
+  });
+
+  it('maps an insights run to the wire, with an empty response before the first run', () => {
+    const insight = {
+      id: 'help-hotspot:c1:lab-1',
+      type: 'help-hotspot',
+      courseId: 'c1',
+      labId: 'lab-1',
+      claim: '6 of 10 learners asked for help in lab-1',
+      producedBy: 'rule' as const,
+      evidence: { sequences: [1, 2], learners: 6, byType: { 'assistance-requested': 2 } },
+      reasoning: 'r',
+    };
+    const wire = toInsightsResponse('c1', {
+      courseId: 'c1',
+      producedAt: new Date('2026-10-15T02:00:00Z'),
+      insights: [insight],
+      recommendations: [{ id: 'PED-2:x', suggestion: 's', insight, rule: { id: 'PED-2', statement: 'st' } }],
+    });
+    expect(contract.InsightsResponse.parse(wire)).toEqual(wire);
+    expect(wire.producedAt).toBe('2026-10-15T02:00:00.000Z');
+    expect(toInsightsResponse('c2', null)).toEqual({ contractVersion: CONTRACT_VERSION, courseId: 'c2', producedAt: null, insights: [], recommendations: [] });
+    expect(() => contract.Insight.parse({ ...insight, evidence: { ...insight.evidence, sequences: [] } })).toThrow();
   });
 
   it('drives AssistStudent end to end from a wire request to a wire response', async () => {

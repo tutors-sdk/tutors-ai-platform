@@ -123,6 +123,40 @@ export const RetentionResponse = z
   .object({ contractVersion: z.literal(CONTRACT_VERSION), removed: z.object({ evidence: z.number().int(), memory: z.number().int() }) })
   .strict();
 
+/** An explainable insight about a lab or cohort: aggregates and evidence sequences, never learner ids. */
+export const Insight = z
+  .object({
+    id: z.string(),
+    type: z.string(),
+    courseId: id,
+    labId: id.optional(),
+    stepId: id.optional(),
+    claim: z.string(),
+    producedBy: z.enum(['rule', 'model']),
+    evidence: z.object({
+      sequences: z.array(z.number().int()).min(1),
+      learners: z.number().int().nonnegative(),
+      byType: z.partialRecord(EvidenceType, z.number().int()),
+    }),
+    reasoning: z.string(),
+  })
+  .strict();
+
+export const InterventionRecommendation = z
+  .object({ id: z.string(), suggestion: z.string(), insight: Insight, rule: z.object({ id: z.string(), statement: z.string() }) })
+  .strict();
+
+/** The latest insights run for a course. */
+export const InsightsResponse = z
+  .object({
+    contractVersion: z.literal(CONTRACT_VERSION),
+    courseId: id,
+    producedAt: z.iso.datetime({ offset: true }).nullable(),
+    insights: z.array(Insight),
+    recommendations: z.array(InterventionRecommendation),
+  })
+  .strict();
+
 /** A pedagogical policy as published in the contract package. */
 export const Policy = z
   .object({
@@ -161,5 +195,6 @@ export type AssistResponse = z.infer<typeof AssistResponse>;
 export type RecordEvidenceRequest = z.infer<typeof RecordEvidenceRequest>;
 export type RetentionRequest = z.infer<typeof RetentionRequest>;
 export type RetentionResponse = z.infer<typeof RetentionResponse>;
+export type InsightsResponse = z.infer<typeof InsightsResponse>;
 export type Policy = z.infer<typeof Policy>;
 export type GoldenSet = z.infer<typeof GoldenSet>;

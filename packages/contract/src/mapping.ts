@@ -1,4 +1,4 @@
-import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence, GoldenSet, RetentionBoundary, RetentionResult } from '@tutors-ai/core';
+import type { AssistanceRequest, AssistanceResponse, LearnerContext, NewEvidence, GoldenSet, InsightRun, RetentionBoundary, RetentionResult } from '@tutors-ai/core';
 import {
   AssistRequest,
   CONTRACT_VERSION,
@@ -7,6 +7,7 @@ import {
   GoldenSet as GoldenSetSchema,
   RetentionRequest,
   type AssistResponse,
+  type InsightsResponse,
   type RetentionResponse,
 } from './schema.ts';
 
@@ -103,5 +104,16 @@ export function toGoldenSet(input: unknown): GoldenSet {
     id: wire.id,
     version: wire.version,
     cases: wire.cases.map((c) => ({ id: c.id, learner: defined(c.learner), question: c.question, expected: c.expected })),
+  };
+}
+
+/** Core → contract: the latest insights run for a course, or an empty one when none has run. */
+export function toInsightsResponse(courseId: string, run: InsightRun | null): InsightsResponse {
+  return {
+    contractVersion: CONTRACT_VERSION,
+    courseId,
+    producedAt: run === null ? null : run.producedAt.toISOString(),
+    insights: structuredClone(run?.insights ?? []) as InsightsResponse['insights'],
+    recommendations: structuredClone(run?.recommendations ?? []) as InsightsResponse['recommendations'],
   };
 }

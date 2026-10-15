@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseCourseExport, type CourseExport } from '@tutors-ai/adapter-course-content';
+import { parseCourseExport, type CourseExport } from './export-format.ts';
 
 /** Loads every `*.json` course export in a directory, failing on the first malformed one. */
 export async function loadCourseExports(dir: string): Promise<CourseExport[]> {

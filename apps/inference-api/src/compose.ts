@@ -1,13 +1,12 @@
-import { CourseExportContent } from '@tutors-ai/adapter-course-content';
+import { CourseExportContent, loadCourseExports } from '@tutors-ai/adapter-course-content';
 import { OllamaLanguageModel } from '@tutors-ai/adapter-ollama';
 import { startOtel } from '@tutors-ai/adapter-otel';
-import { migrate, PostgresEvidenceStore, PostgresLearnerMemory } from '@tutors-ai/adapter-postgres';
+import { migrate, PostgresEvidenceStore, PostgresInsightStore, PostgresLearnerMemory } from '@tutors-ai/adapter-postgres';
 import { SystemClock } from '@tutors-ai/adapter-system';
 import { ContractPolicyProvider } from '@tutors-ai/contract';
 import { ApplyRetentionService, AssistStudentService, NO_TELEMETRY, RecordEvidenceService } from '@tutors-ai/core';
 import pg from 'pg';
 import type { Config } from './config.ts';
-import { loadCourseExports } from './courses.ts';
 import type { Services } from './http.ts';
 
 export interface Composed {
@@ -39,6 +38,7 @@ export async function compose(config: Config): Promise<Composed> {
         assist,
         evidence: new RecordEvidenceService({ evidence, clock, maxClockSkewMs: config.maxClockSkewMs }),
         retention: new ApplyRetentionService({ evidence, memory }),
+        insights: new PostgresInsightStore(pool, config.pgSchema),
         ready: async () => {
           await pool.query('select 1');
           return true;

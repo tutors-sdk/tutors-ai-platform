@@ -1,0 +1,17 @@
+# Build from the repository root:
+#   podman build -f apps/insights-worker/Containerfile -t quay.io/tutors-sdk/tutors-ai-insights-worker .
+FROM registry.access.redhat.com/ubi9/nodejs-22:latest AS build
+USER 0
+WORKDIR /src
+RUN npm install -g pnpm@10
+COPY . .
+RUN pnpm install --frozen-lockfile && pnpm --filter @tutors-ai/app-insights-worker build
+
+FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
+WORKDIR /opt/app
+COPY --from=build /src/apps/insights-worker/dist/main.mjs ./main.mjs
+COPY --from=build /src/LICENSE ./
+ENV NODE_ENV=production \
+    COURSE_EXPORT_DIR=/course-exports
+USER 1001
+CMD ["node", "/opt/app/main.mjs"]

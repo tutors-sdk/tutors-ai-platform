@@ -1,0 +1,24 @@
+{
+  "name": "@tutors-ai/app-insights-worker",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Composition root for the batch path: ExplainLabInsights and RecommendInterventions over stored evidence, run on a schedule.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist/main.mjs"
+  },
+  "dependencies": {
+    "@tutors-ai/adapter-course-content": "workspace:*",
+    "@tutors-ai/adapter-postgres": "workspace:*",
+    "@tutors-ai/adapter-system": "workspace:*",
+    "@tutors-ai/core": "workspace:*",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@tutors-ai/testing": "workspace:*",
+    "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2"
+  }
+}

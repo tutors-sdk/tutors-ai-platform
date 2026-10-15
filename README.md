@@ -50,12 +50,14 @@ packages/
 docs/
   adr/                   architecture decision records
   c4/                    the C4 model as code (Structurizr DSL)
+  evaluation/            the evaluation harness: golden sets through a running inference API, judges, drift
 apps/
   inference-api/         composition root for the request path, over HTTP, and its Containerfile
+  insights-worker/       composition root for the nightly insights run, and its Containerfile
 scripts/                 the EARS gate, the dependency boundary check, the mutation gate
 ```
 
-Still to come, per the roadmap: `evaluation/`, `apps/insights-worker` and `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
+Still to come, per the roadmap: `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
 gate are deferred (ADR 0005).
 
 ## Dependency rules
@@ -107,6 +109,7 @@ pnpm test:integration
 | `POST /v0/assist` | `AssistStudent`: an `AssistRequest` in, an `AssistResponse` out |
 | `POST /v0/evidence` | `RecordEvidence`: a `RecordEvidenceRequest` in, `201` with its sequence |
 | `POST /v0/retention` | `ApplyRetention`: end a session or course, or erase a learner |
+| `GET /v0/insights?courseId=` | the latest insights run for a course: cohort insights and recommendations |
 | `GET /healthz`, `GET /readyz` | liveness; readiness checks PostgreSQL |
 
 A request that breaks the contract or a domain rule gets `400` naming what was wrong. Bodies are
@@ -122,6 +125,17 @@ It reads `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_DIGEST` (required, a sha256: mode
 pnpm --filter @tutors-ai/app-inference-api build && node apps/inference-api/dist/main.mjs
 podman build -f apps/inference-api/Containerfile -t inference-api .
 ```
+
+### Insights
+
+`apps/insights-worker` runs nightly. For each course in `COURSE_EXPORT_DIR` (or `COURSE_IDS`), it
+reads the evidence, applies the insight rules (a stalled step, a help hotspot, low completion,
+reliance on full explanations) and the pedagogical rules that turn them into recommendations, and
+saves the run for `GET /v0/insights`. Insights are cohort aggregates. Any lab with fewer learners
+than `INSIGHTS_MIN_COHORT` (default 5, never below 3) is not described at all. The student view
+waits for the identity port (ADR 0005). A model may propose insights too, but its insight types
+reach lecturers only after passing the evaluation harness, and every one is labelled as produced
+by a model.
 
 ### The gates
 

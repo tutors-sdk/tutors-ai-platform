@@ -1,5 +1,5 @@
 # Build from the repository root:
-#   podman build -f apps/inference-api/Containerfile -t quay.io/tutors-sdk/inference-api .
+#   podman build -f apps/inference-api/Containerfile -t quay.io/tutors-sdk/tutors-ai-inference-api .
 FROM registry.access.redhat.com/ubi9/nodejs-22:latest AS build
 USER 0
 WORKDIR /src
@@ -10,7 +10,7 @@ RUN pnpm install --frozen-lockfile && pnpm --filter @tutors-ai/app-inference-api
 FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
 WORKDIR /opt/app
 COPY --from=build /src/apps/inference-api/dist/main.mjs ./main.mjs
-COPY --from=build /src/LICENSE* ./
+COPY --from=build /src/LICENSE ./
 ENV NODE_ENV=production \
     PORT=8080 \
     COURSE_EXPORT_DIR=/data/courses
