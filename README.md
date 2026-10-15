@@ -42,6 +42,7 @@ packages/
   contract/              @tutors/ai-contract 0.1, policies, golden sets, the contract adapter
   adapters/
     ollama/              LanguageModel: prompts, structured output, streaming, digest pinning
+    postgres/            EvidenceStore and LearnerMemory, scope and retention enforced in SQL
     course-content/      CourseContent over a Tutors course export
   testing/               contract-test kits, fakes and builders, written against ports
 docs/
@@ -50,8 +51,9 @@ docs/
 scripts/                 the EARS gate, the dependency boundary check, the mutation gate
 ```
 
-Still to come, per the roadmap: `adapters/postgres`, `adapters/keycloak`, `adapters/otel`,
-`evaluation/`, `apps/inference-api`, `apps/insights-worker` and `infra/` (OpenShift, AWS, staging).
+Still to come, per the roadmap: `adapters/otel`, `evaluation/`, `apps/inference-api`,
+`apps/insights-worker` and `infra/` (OpenShift, AWS, staging). `adapters/keycloak` and the release
+gate are deferred (ADR 0005).
 
 ## Dependency rules
 
@@ -74,7 +76,14 @@ Requires Node 22 and pnpm 10.
 pnpm install
 pnpm check              # typecheck, lint + boundaries, EARS gate, unit and contract tests
 pnpm mutation           # Stryker on core; then node scripts/check-mutation.mjs
-pnpm test:integration   # needs a running Ollama, see below
+pnpm test:integration   # needs a running Ollama and PostgreSQL, see below
+```
+
+To run the PostgreSQL adapter kits locally, point `PG_URL` at any PostgreSQL 16 you can create
+schemas in; each test creates and drops its own schema:
+
+```sh
+PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:integration
 ```
 
 To run the adapter against a real model locally:
