@@ -53,7 +53,43 @@ jobs:
     runs-on: ubuntu-latest
     services:
       ollama:
-        image:
+        image: ollama/ollama:0.12.3
+        ports:
+          - 11434:11434
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      OLLAMA_URL: http://localhost:11434
+      PG_URL: postgres://postgres:postgres@localhost:5432/postgres
+      OLLAMA_MODEL: qwen2.5:0.5b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull the CI model and resolve its digest
+        run: |
+          for i in $(seq 1 30); do curl -sf "$OLLAMA_URL/api/version" && break; sleep 2; done
+          curl -sf "$OLLAMA_URL/api/pull" -d "{\"model\":\"$OLLAMA_MODEL\",\"stream\":false}"
+          digest=$(curl -sf "$OLLAMA_URL/api/tags" | jq -r --arg m "$OLLAMA_MODEL" '.models[] | select(.name == $m) | .digest')
+          test -n "$digest"
+          echo "OLLAMA_DIGEST=sha256:$digest" >> "$GITHUB_ENV"
+          echo "CI model $OLLAMA_MODEL is sha256:$digest"
+      - run: pnpm test:integration
+
+  image:
     name: Container image (${{ matrix.app }})
     runs-on: ubuntu-latest
     needs: [check]
@@ -84,3 +120,29 @@ jobs:
           podman push "$IMAGE:sha-${GITHUB_SHA::12}"
           podman tag "$IMAGE:sha-${GITHUB_SHA::12}" "$IMAGE:main"
           podman push "$IMAGE:main"
+
+  infra:
+    name: Infrastructure (kustomize, kubeconform, conftest, terraform)
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: 5.4.3
+      KUBECONFORM_VERSION: 0.6.7
+      CONFTEST_VERSION: 0.56.0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Install kustomize, kubeconform and conftest
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" kustomize
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" kubeconform
+          curl -sSfL "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" | tar -xz -C "$RUNNER_TEMP/bin" conftest
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Staging (strict) and Terraform
+        run: infra/ci/check.sh staging
+      # Once production is pinned, drop --expect-unpinned; check.sh fails if it is left in.
+      - name: Production (every policy but the model pin, which must still be UNPINNED)
+        run: infra/ci/check.sh --skip-terraform --expect-unpinned production

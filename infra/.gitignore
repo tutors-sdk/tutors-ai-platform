@@ -1,0 +1,8 @@
+# Real secrets are applied by hand from the *.example.yaml files and never committed.
+openshift/**/secret.yaml
+# Terraform working state. State itself belongs in a remote backend, not here.
+aws/.terraform/
+aws/*.tfstate
+aws/*.tfstate.*
+aws/terraform.tfvars
+aws/*.tfplan

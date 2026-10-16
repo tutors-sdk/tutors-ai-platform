@@ -1,0 +1,10 @@
+# The weights production serves. Record the digest staging was evaluated on, as printed by
+# `infra/openshift/pin-model.sh tutors-ai-staging`. CI fails this overlay until it is a real
+# sha256 digest.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-pin
+data:
+  OLLAMA_MODEL: qwen3.8:27b
+  OLLAMA_DIGEST: sha256:UNPINNED

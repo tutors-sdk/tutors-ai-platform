@@ -1,0 +1,9 @@
+# Staging may run UNPINNED until the first pull; `pin-model.sh tutors-ai-staging` then pins it in
+# the cluster. Record it here (--record staging) so a redeploy does not reset it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-pin
+data:
+  OLLAMA_MODEL: qwen3.8:27b
+  OLLAMA_DIGEST: sha256:UNPINNED
