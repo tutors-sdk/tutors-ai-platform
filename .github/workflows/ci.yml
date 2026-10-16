@@ -53,7 +53,43 @@ jobs:
     runs-on: ubuntu-latest
     services:
       ollama:
-        image:
+        image: ollama/ollama:0.12.3
+        ports:
+          - 11434:11434
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      OLLAMA_URL: http://localhost:11434
+      PG_URL: postgres://postgres:postgres@localhost:5432/postgres
+      OLLAMA_MODEL: qwen2.5:0.5b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pull the CI model and resolve its digest
+        run: |
+          for i in $(seq 1 30); do curl -sf "$OLLAMA_URL/api/version" && break; sleep 2; done
+          curl -sf "$OLLAMA_URL/api/pull" -d "{\"model\":\"$OLLAMA_MODEL\",\"stream\":false}"
+          digest=$(curl -sf "$OLLAMA_URL/api/tags" | jq -r --arg m "$OLLAMA_MODEL" '.models[] | select(.name == $m) | .digest')
+          test -n "$digest"
+          echo "OLLAMA_DIGEST=sha256:$digest" >> "$GITHUB_ENV"
+          echo "CI model $OLLAMA_MODEL is sha256:$digest"
+      - run: pnpm test:integration
+
+  image:
     name: Container image (${{ matrix.app }})
     runs-on: ubuntu-latest
     needs: [check]
