@@ -1,20 +1,39 @@
-# Build from the repository root:
+# Build from the repository root (podman or docker):
 #   podman build -f apps/inference-api/Containerfile -t quay.io/tutors-sdk/tutors-ai-inference-api .
-FROM registry.access.redhat.com/ubi9/nodejs-22:latest AS build
+# Base images are pinned to a UBI minor stream; bump both together. Override them only to build
+# through a mirror.
+ARG BUILD_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:9.6
+ARG RUNTIME_IMAGE=registry.access.redhat.com/ubi9/nodejs-22-minimal:9.6
+
+FROM ${BUILD_IMAGE} AS build
 USER 0
 WORKDIR /src
-RUN npm install -g pnpm@10
+# pnpm at the exact version package.json names.
+RUN corepack enable pnpm
+# Dependencies first, so source edits reuse the cached store.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm fetch --frozen-lockfile
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm --filter @tutors-ai/app-inference-api build
+RUN pnpm install --offline --frozen-lockfile && pnpm --filter @tutors-ai/app-inference-api build
 
-FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:latest
+FROM ${RUNTIME_IMAGE}
+ARG VERSION=dev
+ARG REVISION=unknown
+LABEL org.opencontainers.image.title="tutors-ai-inference-api" \
+      org.opencontainers.image.description="Tutors AI inference API: AssistStudent, RecordEvidence and ApplyRetention over HTTP." \
+      org.opencontainers.image.source="https://github.com/tutors-sdk/tutors-ai-platform" \
+      org.opencontainers.image.licenses="GPL-3.0" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
 WORKDIR /opt/app
+# esbuild bundles every dependency into one file, so the runtime image carries no node_modules.
 COPY --from=build /src/apps/inference-api/dist/main.mjs ./main.mjs
 COPY --from=build /src/LICENSE ./
 ENV NODE_ENV=production \
     PORT=8080 \
-    COURSE_EXPORT_DIR=/data/courses
+    COURSE_EXPORT_DIR=/course-exports
 EXPOSE 8080
+# Telemetry is off unless OTEL_EXPORTER_OTLP_ENDPOINT names an OTLP/HTTP collector.
 # Runs as the image's non-root user; OpenShift assigns an arbitrary UID, which needs no write access here.
 USER 1001
 CMD ["node", "/opt/app/main.mjs"]

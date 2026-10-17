@@ -1,0 +1,113 @@
+# The whole platform on one machine, for development and for the CI end-to-end check.
+# Works with `docker compose` and `podman compose`. Start it with scripts/dev-up.sh, which pulls
+# the model and records its digest in .env; after that a plain `compose up -d` is enough.
+#
+# Local only: the password below is not a secret and nothing here is for real learners. Course
+# content is the synthetic fixtures; staging and production run from infra/openshift.
+
+name: tutors-ai
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16.4
+    environment:
+      POSTGRES_USER: tutors
+      POSTGRES_PASSWORD: tutors-local
+      POSTGRES_DB: tutors_ai
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "tutors", "-d", "tutors_ai"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  ollama:
+    image: docker.io/ollama/ollama:0.12.3
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: "-1"
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Same pipeline as the cluster's collector (infra/openshift/base/otel-collector.yaml): it prints
+  # what it receives to its own log. `compose logs -f otel-collector` shows traces and metrics.
+  otel-collector:
+    image: docker.io/otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "127.0.0.1:4318:4318"
+    volumes:
+      - ./infra/compose/otel-collector.yaml:/etc/otelcol/config.yaml:ro,z
+
+  inference-api:
+    build:
+      context: .
+      dockerfile: apps/inference-api/Containerfile
+    image: ${IMAGE_REGISTRY:-quay.io/tutors-sdk}/tutors-ai-inference-api:${IMAGE_TAG:-dev}
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:0.5b}
+      # Written to .env by scripts/dev-up.sh; the API refuses to start without a real digest.
+      OLLAMA_DIGEST: ${OLLAMA_DIGEST:-}
+      PG_URL: postgres://tutors:tutors-local@postgres:5432/tutors_ai
+      COURSE_EXPORT_DIR: /course-exports
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      EVIDENCE_SOURCE: inference-api
+      # A CPU model on a laptop is slow; the cluster default is 30s.
+      MODEL_TIMEOUT_MS: ${MODEL_TIMEOUT_MS:-120000}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./packages/adapters/course-content/test/fixtures:/course-exports:ro,z
+    # The same lock-down the cluster applies.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+
+  # A one-off run, as the nightly CronJob does it: `compose run --rm insights-worker`.
+  insights-worker:
+    profiles: [jobs]
+    build:
+      context: .
+      dockerfile: apps/insights-worker/Containerfile
+    image: ${IMAGE_REGISTRY:-quay.io/tutors-sdk}/tutors-ai-insights-worker:${IMAGE_TAG:-dev}
+    environment:
+      PG_URL: postgres://tutors:tutors-local@postgres:5432/tutors_ai
+      COURSE_EXPORT_DIR: /course-exports
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      EVIDENCE_SOURCE: insights-worker
+    volumes:
+      - ./packages/adapters/course-content/test/fixtures:/course-exports:ro,z
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  ollama-models:
