@@ -55,7 +55,7 @@ The inference API is reachable only from inside its namespace until authenticati
 | Step | What happens |
 | --- | --- |
 | Pull request | CI runs `pnpm check` and the `infra` job: `check.sh staging` strictly, and production with `--expect-unpinned` until production is pinned. |
-| Merge to main | CI builds the two images and pushes them to `quay.io/tutors-sdk` as `main` and `sha-<commit>`, sets the staging overlay's tags to `sha-<commit>` in its working copy, and runs `oc apply -k overlays/staging` with a service account that can edit `tutors-ai-staging` only. |
+| Merge to main | CI builds the two images and pushes them to `quay.io/tutors-sdk` (the `QUAY_ORG` repository variable) as `main` and `sha-<commit>`, using the `QUAY_ROBOT_USERNAME` and `QUAY_ROBOT_TOKEN` secrets, sets the staging overlay's tags to `sha-<commit>` in its working copy, and runs `oc apply -k overlays/staging` with a service account that can edit `tutors-ai-staging` only. |
 | Production | Manual promotion only. A pull request sets the production overlay's image tags to ones that passed staging and records the staging-evaluated digest (`pin-model.sh tutors-ai-staging --record production`). After merge, a named operator runs `oc apply -k overlays/production` and `pin-model.sh tutors-ai-production`, which refuses if the weights Ollama pulls differ from the recorded digest. |
 
 ## Isolation rules

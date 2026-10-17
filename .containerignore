@@ -2,5 +2,11 @@
 **/dist
 **/reports
 **/.stryker-tmp
+**/coverage
 .git
+.github
 .claude
+docs
+infra
+compose.yaml
+.env

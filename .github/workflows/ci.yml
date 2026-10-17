@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+    # A release tag (v0.1.0) publishes the image tag the production overlay promotes (0.1.0).
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -97,13 +99,21 @@ jobs:
       matrix:
         app: [inference-api, insights-worker]
     env:
-      IMAGE: quay.io/tutors-sdk/tutors-ai-${{ matrix.app }}
-      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+      # quay.io/<QUAY_ORG>/tutors-ai-<app>. QUAY_ORG is a repository variable; it defaults to the
+      # organisation the OpenShift overlays name, so change both together.
+      IMAGE: quay.io/${{ vars.QUAY_ORG || 'tutors-sdk' }}/tutors-ai-${{ matrix.app }}
+      # A quay.io robot account with write access to the two repositories.
+      QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
+      QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Build
-        run: podman build -f "apps/${{ matrix.app }}/Containerfile" -t "$IMAGE:sha-${GITHUB_SHA::12}" .
+        run: |
+          version=dev
+          if [ "$GITHUB_REF_TYPE" = tag ]; then version="${GITHUB_REF_NAME#v}"; fi
+          podman build -f "apps/${{ matrix.app }}/Containerfile" \
+            --build-arg VERSION="$version" --build-arg REVISION="$GITHUB_SHA" \
+            -t "$IMAGE:sha-${GITHUB_SHA::12}" .
       - name: Smoke test the image starts and refuses missing config
         run: |
           set +e
@@ -113,13 +123,64 @@ jobs:
           echo "$out"
           test "$code" -ne 0
           echo "$out" | grep -q "is required"
-      - name: Push (main only, when registry credentials are configured)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.QUAY_USERNAME != ''
+      - name: Push (main and release tags only, when registry credentials are configured)
+        if: github.event_name == 'push' && env.QUAY_ROBOT_USERNAME != ''
         run: |
-          echo "$QUAY_PASSWORD" | podman login quay.io -u "$QUAY_USERNAME" --password-stdin
+          echo "$QUAY_ROBOT_TOKEN" | podman login quay.io -u "$QUAY_ROBOT_USERNAME" --password-stdin
           podman push "$IMAGE:sha-${GITHUB_SHA::12}"
-          podman tag "$IMAGE:sha-${GITHUB_SHA::12}" "$IMAGE:main"
-          podman push "$IMAGE:main"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then tag="${GITHUB_REF_NAME#v}"; else tag=main; fi
+          podman tag "$IMAGE:sha-${GITHUB_SHA::12}" "$IMAGE:$tag"
+          podman push "$IMAGE:$tag"
+          echo "Pushed $IMAGE:sha-${GITHUB_SHA::12} and $IMAGE:$tag" >> "$GITHUB_STEP_SUMMARY"
+      - name: Note that nothing was pushed
+        if: github.event_name == 'push' && env.QUAY_ROBOT_USERNAME == ''
+        run: echo "Built but not pushed; set the QUAY_ROBOT_USERNAME and QUAY_ROBOT_TOKEN secrets to publish." >> "$GITHUB_STEP_SUMMARY"
+
+  compose:
+    name: Whole platform in containers (compose.yaml)
+    runs-on: ubuntu-latest
+    needs: [check]
+    env:
+      OLLAMA_MODEL: qwen2.5:0.5b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The local collector config matches the cluster's
+        run: |
+          python3 - <<'PY'
+          import sys
+          cluster = open('infra/openshift/base/otel-collector.yaml').read().split('config.yaml: |\n')[1].split('\n---')[0]
+          cluster = [line[4:] for line in cluster.splitlines()]
+          local = [line for line in open('infra/compose/otel-collector.yaml').read().splitlines() if not line.startswith('#')]
+          if [l for l in cluster if l.strip()] != [l for l in local if l.strip()]:
+              sys.exit('infra/compose/otel-collector.yaml differs from the ConfigMap in infra/openshift/base/otel-collector.yaml')
+          PY
+      - name: Start the stack
+        run: scripts/dev-up.sh
+      - name: Ask a question through the API
+        run: |
+          curl -sf --max-time 180 http://127.0.0.1:8080/v0/assist -H 'content-type: application/json' -d '{
+            "contractVersion": "0.1.0",
+            "learner": {"learnerId": "ci-learner", "sessionId": "ci-session", "courseId": "full-stack-1",
+                        "labId": "lab-01-loops", "level": "first-year", "memory": {"kind": "session", "sharing": "private"}},
+            "question": "Why does my while loop never end?"
+          }' | tee assist.json
+          node -e 'const b = JSON.parse(require("fs").readFileSync("assist.json", "utf8")); if (!["answered", "refused"].includes(b.kind)) process.exit(1)'
+      - name: Run the insights worker once
+        run: docker compose run --rm insights-worker
+      - name: The collector received the API's spans
+        run: |
+          for _ in $(seq 1 15); do
+            docker compose logs otel-collector | grep -q '"spans"' && exit 0
+            sleep 2
+          done
+          docker compose logs otel-collector
+          exit 1
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color
 
   infra:
     name: Infrastructure (kustomize, kubeconform, conftest, terraform)

@@ -111,6 +111,30 @@ export OLLAMA_DIGEST=sha256:$(curl -s $OLLAMA_URL/api/tags | jq -r '.models[] | 
 pnpm test:integration
 ```
 
+### In containers
+
+`compose.yaml` runs the whole platform locally: PostgreSQL, Ollama, the OpenTelemetry collector,
+the inference API and (on demand) the insights worker, each built from its Containerfile and
+locked down as the cluster runs it. Course content is the synthetic fixtures. Works with
+`docker compose` or `podman compose` (set `COMPOSE="podman compose"` to choose).
+
+```sh
+scripts/dev-up.sh                              # pulls the model, pins its digest in .env, starts the API on :8080
+docker compose run --rm insights-worker        # one insights run, as the nightly CronJob does it
+docker compose logs -f otel-collector          # the traces and metrics the API exports
+docker compose --profile jobs down -v          # stop and delete the local data
+```
+
+`OLLAMA_MODEL=qwen3.8:27b scripts/dev-up.sh` uses the release model instead of the small CPU one.
+
+The images are `quay.io/<org>/tutors-ai-inference-api` and `quay.io/<org>/tutors-ai-insights-worker`
+(UBI 9 Node 22 minimal, non-root, one bundled file each). CI builds and smoke-tests both on every
+pull request and starts the compose stack end to end. Pushes to `main` publish `main` and
+`sha-<commit>`; a `v*` tag publishes the version (`v0.1.0` becomes `0.1.0`). Publishing needs the
+repository secrets `QUAY_ROBOT_USERNAME` and `QUAY_ROBOT_TOKEN` (a quay.io robot account with
+write access); without them CI builds but pushes nothing. The organisation is the repository
+variable `QUAY_ORG` (default `tutors-sdk`, the name the OpenShift overlays use).
+
 ### The inference API
 
 `apps/inference-api` wires every adapter to the core and serves contract 0.1 over HTTP:
@@ -134,7 +158,7 @@ It reads `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_DIGEST` (required, a sha256: mode
 
 ```sh
 pnpm --filter @tutors-ai/app-inference-api build && node apps/inference-api/dist/main.mjs
-podman build -f apps/inference-api/Containerfile -t inference-api .
+podman build -f apps/inference-api/Containerfile -t tutors-ai-inference-api .
 ```
 
 ### Insights
