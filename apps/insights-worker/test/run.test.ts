@@ -1,5 +1,5 @@
 import { DEFAULT_INSIGHT_THRESHOLDS, type EvidenceStore } from '@tutors-ai/core';
-import { anEvidence, FixedClock, InMemoryEvidenceStore, InMemoryInsightStore } from '@tutors-ai/testing';
+import { anEvidence, FixedClock, InMemoryEvidenceStore, InMemoryInsightStore, RecordingTelemetry } from '@tutors-ai/testing';
 import { describe, expect, it } from 'vitest';
 import { ConfigError, readConfig } from '../src/config.ts';
 import { runInsights } from '../src/run.ts';
@@ -20,7 +20,8 @@ describe('insights worker', () => {
     };
     const store = new InMemoryInsightStore();
     const log: Record<string, unknown>[] = [];
-    const result = await runInsights(['course-1', 'broken', 'empty'], { evidence: flaky, store, clock, thresholds: DEFAULT_INSIGHT_THRESHOLDS, log: (e) => log.push(e) });
+    const telemetry = new RecordingTelemetry();
+    const result = await runInsights(['course-1', 'broken', 'empty'], { evidence: flaky, store, clock, thresholds: DEFAULT_INSIGHT_THRESHOLDS, log: (e) => log.push(e), telemetry });
     expect(result).toEqual({ ok: 2, failed: 1 });
     const run = await store.latest('course-1');
     expect(run?.producedAt.toISOString()).toBe('2026-10-16T02:00:00.000Z');
@@ -33,6 +34,16 @@ describe('insights worker', () => {
       { msg: 'insights failed', courseId: 'broken', error: 'db down' },
       { msg: 'insights saved', courseId: 'empty', insights: 0, recommendations: 0 },
     ]);
+    const [root, ...rest] = telemetry.spans;
+    expect(root).toMatchObject({ name: 'InsightsRun', outcome: 'error', attributes: { 'run.courses': 3, 'run.ok': 2, 'run.failed': 1 } });
+    expect(rest.map((s) => [s.name, s.parent?.name, s.outcome])).toEqual([
+      ['InsightsRun.course', 'InsightsRun', 'ok'],
+      ['InsightStore.save', 'InsightsRun.course', 'ok'],
+      ['InsightsRun.course', 'InsightsRun', 'error'],
+      ['InsightsRun.course', 'InsightsRun', 'ok'],
+      ['InsightStore.save', 'InsightsRun.course', 'ok'],
+    ]);
+    expect(rest[0]?.attributes).toEqual({ 'course.id': 'course-1', 'insights.count': 2, 'recommendations.count': 2 });
   });
 
   it('reads its configuration and refuses a cohort minimum that would identify learners', () => {
@@ -42,7 +53,9 @@ describe('insights worker', () => {
       courseExportDir: '/c',
       courseIds: undefined,
       thresholds: DEFAULT_INSIGHT_THRESHOLDS,
+      otelEndpoint: undefined,
     });
+    expect(readConfig({ PG_URL: 'p', COURSE_EXPORT_DIR: '/c', OTEL_EXPORTER_OTLP_ENDPOINT: ' http://otel-collector:4318 ' }).otelEndpoint).toBe('http://otel-collector:4318');
     expect(readConfig({ PG_URL: 'p', COURSE_EXPORT_DIR: '/c', COURSE_IDS: 'a, b,,', INSIGHTS_MIN_COHORT: '8', INSIGHTS_HELP_SHARE: '0.7' })).toMatchObject({
       courseIds: ['a', 'b'],
       thresholds: { minCohort: 8, helpShare: 0.7 },

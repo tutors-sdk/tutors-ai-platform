@@ -88,8 +88,8 @@ it. For logs, add the matching exporter to the `logs` pipeline. Nothing in the a
 
 ## Known gaps
 
-- Only `AssistStudent` emits spans. `RecordEvidence`, `ApplyRetention` and the insights worker do
-  not yet.
+- `AssistStudent` and the insights worker (`InsightsRun`, one `InsightsRun.course` child per
+  course) emit spans. `RecordEvidence` and `ApplyRetention` do not yet.
 - The inference API does not continue a caller's `traceparent`, so a trace starts at the platform.
 - Traces and logs still go to the collector's debug exporter.
 - None of this has run on a cluster; check the Prometheus metric names on first deploy.
