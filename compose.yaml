@@ -39,13 +39,15 @@ services:
       timeout: 5s
       retries: 30
 
-  # Same pipeline as the cluster's collector (infra/openshift/base/otel-collector.yaml): it prints
-  # what it receives to its own log. `compose logs -f otel-collector` shows traces and metrics.
+  # Same pipeline as the cluster's collector (infra/openshift/base/otel-collector.yaml): traces and
+  # logs print to its own log (`compose logs -f otel-collector`); metrics are served in Prometheus
+  # format at http://127.0.0.1:8889/metrics, as the cluster's monitoring scrapes them.
   otel-collector:
     image: docker.io/otel/opentelemetry-collector-contrib:0.111.0
     command: ["--config=/etc/otelcol/config.yaml"]
     ports:
       - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8889:8889"
     volumes:
       - ./infra/compose/otel-collector.yaml:/etc/otelcol/config.yaml:ro,z
 

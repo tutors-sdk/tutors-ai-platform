@@ -72,6 +72,9 @@ importers:
       '@tutors-ai/adapter-course-content':
         specifier: workspace:*
         version: link:../../packages/adapters/course-content
+      '@tutors-ai/adapter-otel':
+        specifier: workspace:*
+        version: link:../../packages/adapters/otel
       '@tutors-ai/adapter-postgres':
         specifier: workspace:*
         version: link:../../packages/adapters/postgres

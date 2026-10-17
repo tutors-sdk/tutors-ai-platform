@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tutors-ai/adapter-course-content": "workspace:*",
+    "@tutors-ai/adapter-otel": "workspace:*",
     "@tutors-ai/adapter-postgres": "workspace:*",
     "@tutors-ai/adapter-system": "workspace:*",
     "@tutors-ai/core": "workspace:*",

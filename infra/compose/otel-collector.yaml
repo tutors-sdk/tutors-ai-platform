@@ -13,6 +13,8 @@ processors:
 exporters:
   debug:
     verbosity: basic
+  prometheus:
+    endpoint: 0.0.0.0:8889
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
@@ -26,7 +28,7 @@ service:
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [debug]
+      exporters: [prometheus]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]

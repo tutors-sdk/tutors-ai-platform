@@ -7,6 +7,7 @@ export interface Config {
   readonly courseExportDir: string;
   readonly courseIds: readonly string[] | undefined;
   readonly thresholds: InsightThresholds;
+  readonly otelEndpoint: string | undefined;
 }
 
 export class ConfigError extends Error {
@@ -35,6 +36,7 @@ export function readConfig(env: Env): Config {
   // Below three learners an aggregate all but names someone.
   if (!Number.isInteger(minCohort) || minCohort < 3) throw new ConfigError('INSIGHTS_MIN_COHORT must be an integer of at least 3');
   const d = DEFAULT_INSIGHT_THRESHOLDS;
+  const otel = env['OTEL_EXPORTER_OTLP_ENDPOINT']?.trim();
   return {
     pgUrl,
     pgSchema: env['PG_SCHEMA']?.trim() || 'public',
@@ -47,5 +49,6 @@ export function readConfig(env: Env): Config {
       completionShare: share(env, 'INSIGHTS_COMPLETION_SHARE', d.completionShare),
       explanationShare: share(env, 'INSIGHTS_EXPLANATION_SHARE', d.explanationShare),
     },
+    otelEndpoint: otel === undefined || otel === '' ? undefined : otel,
   };
 }
