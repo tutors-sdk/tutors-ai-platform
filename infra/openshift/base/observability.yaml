@@ -1,0 +1,48 @@
+# OpenShift user workload monitoring scrapes the collector's Prometheus endpoint, and alerts on the
+# signals every port call emits (docs/observability.md). Needs user workload monitoring enabled on
+# the cluster (cluster-monitoring-config: enableUserWorkload: true). Not yet run on a cluster: check
+# the metric names against the collector's :8889 output on first deploy.
+#
+# The collector's Prometheus exporter turns tutors_ai.span.duration (ms) into
+# tutors_ai_span_duration_milliseconds_{bucket,count,sum}, labelled by span `name` and `outcome`.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: otel-collector
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  endpoints:
+    - port: metrics
+      interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tutors-ai-platform
+spec:
+  groups:
+    - name: tutors-ai-platform
+      rules:
+        # A driven port (model, memory, evidence, content) failing for more than 5% of calls.
+        - alert: TutorsAiPortErrors
+          expr: |
+            sum by (name) (rate(tutors_ai_span_duration_milliseconds_count{outcome="error", name=~"[A-Za-z]+\\.[A-Za-z]+"}[10m]))
+              /
+            sum by (name) (rate(tutors_ai_span_duration_milliseconds_count{name=~"[A-Za-z]+\\.[A-Za-z]+"}[10m]))
+              > 0.05
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{ $labels.name }} fails for more than 5% of calls'
+        # Learners waiting: the 95th percentile of a whole assist request.
+        - alert: TutorsAiAssistSlow
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(tutors_ai_span_duration_milliseconds_bucket{name="AssistStudent"}[10m]))) > 20000
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: AssistStudent p95 is above 20 s

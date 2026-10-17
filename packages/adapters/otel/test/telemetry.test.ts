@@ -79,6 +79,21 @@ describe('OtelTelemetry', () => {
     }
   });
 
+  it('TEL-004 exports a span started with a parent as its child in the same trace', () => {
+    const s = setup();
+    const root = s.telemetry.startSpan('AssistStudent');
+    const child = s.telemetry.startSpan('LanguageModel.complete', {}, root);
+    child.end('ok');
+    root.end('ok');
+    const unrelated = s.telemetry.startSpan('AssistStudent');
+    unrelated.end('ok');
+    const [exportedChild, exportedRoot, exportedUnrelated] = s.spans.getFinishedSpans();
+    expect(exportedChild?.spanContext().traceId).toBe(exportedRoot?.spanContext().traceId);
+    expect(exportedChild?.parentSpanContext?.spanId).toBe(exportedRoot?.spanContext().spanId);
+    expect(exportedUnrelated?.spanContext().traceId).not.toBe(exportedRoot?.spanContext().traceId);
+    expect(exportedUnrelated?.parentSpanContext).toBeUndefined();
+  });
+
   it('TEL-003 drops data rather than fail when the tracer misbehaves', () => {
     const broken = {
       startSpan: () => {

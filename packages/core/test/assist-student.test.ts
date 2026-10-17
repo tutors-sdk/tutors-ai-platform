@@ -329,7 +329,7 @@ describe('AssistStudent', () => {
     const s = setup();
     await s.service.assist(ask());
     await s.service.assist(ask({}, ''));
-    const [answered, refused] = s.telemetry.spans;
+    const [answered, refused] = s.telemetry.roots;
     expect(answered).toMatchObject({
       name: 'AssistStudent',
       outcome: 'ok',
@@ -345,6 +345,31 @@ describe('AssistStudent', () => {
       },
     });
     expect(refused).toMatchObject({ outcome: 'ok', attributes: { 'assist.outcome': 'refused', 'assist.refusal': 'empty-question' } });
+  });
+
+  it('AS-018 makes every driven-port call in a child span of the request span', async () => {
+    const s = setup();
+    await s.service.assist(ask({ memory: { kind: 'session', sharing: 'private' } }));
+    const [root, ...children] = s.telemetry.spans;
+    expect(root?.name).toBe('AssistStudent');
+    expect(children.map((c) => c.name)).toEqual([
+      'PolicyProvider.policyFor',
+      'CourseContent.retrieve',
+      'LearnerMemory.recall',
+      'LanguageModel.complete',
+      'EvidenceStore.append',
+      'EvidenceStore.append',
+      'LearnerMemory.remember',
+    ]);
+    for (const child of children) expect(child).toMatchObject({ parent: root, outcome: 'ok' });
+  });
+
+  it('AS-018 traces the refusal evidence and marks a failed port call as an error', async () => {
+    const s = setup({ model: { unavailable: true } });
+    expect(await s.service.assist(ask())).toMatchObject({ kind: 'refused', reason: 'model-unavailable' });
+    const model = s.telemetry.spans.find((c) => c.name === 'LanguageModel.complete');
+    expect(model).toMatchObject({ outcome: 'error', attributes: { 'port.error': 'unavailable' } });
+    expect(s.telemetry.spans.at(-1)).toMatchObject({ name: 'EvidenceStore.append', outcome: 'ok' });
   });
 
   it('works without a telemetry adapter', async () => {

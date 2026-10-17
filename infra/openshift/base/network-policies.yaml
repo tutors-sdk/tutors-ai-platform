@@ -1,10 +1,11 @@
-# Ingress isolation. Everything is denied, then exactly three flows are allowed:
+# Ingress isolation. Everything is denied, then exactly four flows are allowed:
 #   inference-api                  -> ollama:11434
 #   inference-api, insights-worker -> postgres:5432
 #   inference-api, insights-worker -> otel-collector:4318
+#   user workload monitoring       -> otel-collector:8889 (metrics only)
 # Nothing reaches inference-api itself (and there is no Route) until authentication lands
 # (ADR 0005). Peers are pod selectors without a namespaceSelector, so they match only pods in
-# this namespace: staging cannot reach production and the reverse. CI checks the ollama rule.
+# this namespace, except OpenShift's own Prometheus, which scrapes from its namespace: staging cannot reach production and the reverse. CI checks the ollama rule.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -72,3 +73,21 @@ spec:
       ports:
         - protocol: TCP
           port: 4318
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-to-otel-collector-metrics
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-user-workload-monitoring
+      ports:
+        - protocol: TCP
+          port: 8889

@@ -2,6 +2,7 @@ export * from './domain/assistance.ts';
 export * from './domain/capability.ts';
 export * from './domain/errors.ts';
 export * from './domain/evidence.ts';
+export type * from './domain/governance.ts';
 export * from './domain/learner.ts';
 export * from './domain/material.ts';
 export * from './domain/memory.ts';
@@ -10,12 +11,15 @@ export * from './domain/retention.ts';
 
 export type * from './ports/driven/clock.ts';
 export type * from './ports/driven/course-content.ts';
+export type * from './ports/driven/decision-log.ts';
 export type * from './ports/driven/evidence-store.ts';
+export type * from './ports/driven/governed-memory.ts';
 export type * from './ports/driven/identity.ts';
 export type * from './ports/driven/insight-store.ts';
 export type * from './ports/driven/language-model.ts';
 export type * from './ports/driven/learner-memory.ts';
 export type * from './ports/driven/policy-provider.ts';
+export type * from './ports/driven/sharing-candidates.ts';
 export * from './ports/driven/telemetry.ts';
 
 export type * from './ports/driving/assist-student.ts';
@@ -24,6 +28,9 @@ export type * from './ports/driving/explain-lab-insights.ts';
 export type * from './ports/driving/record-evidence.ts';
 export type * from './ports/driving/recommend-interventions.ts';
 export type * from './ports/driving/apply-retention.ts';
+export type * from './ports/driving/curate-memory.ts';
+export type * from './ports/driving/record-reflection.ts';
+export type * from './ports/driving/review-sharing.ts';
 
 export * from './usecases/assist-student.ts';
 export * from './usecases/record-evidence.ts';
@@ -31,3 +38,4 @@ export * from './usecases/apply-retention.ts';
 export * from './usecases/evaluate-capability.ts';
 export * from './usecases/explain-lab-insights.ts';
 export * from './usecases/recommend-interventions.ts';
+export * from './usecases/traced.ts';

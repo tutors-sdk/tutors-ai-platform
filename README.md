@@ -31,6 +31,7 @@ and the infrastructure is code. It has not yet run on a real cluster.
 | Golden sets, ten cases per level | Need a lecturer |
 | Production model pin (Qwen 3.8 27B, ADR 0005) | Needs a first pull in staging (`infra/openshift/pin-model.sh`) |
 | Identity (Keycloak) and the release gate | Deferred (ADR 0005) |
+| Governed memory with MemoryHub (final-year project) | Ports and planned specs ready (ADR 0006); guide in `docs/projects/governed-memory.md` |
 
 ## Layout
 
@@ -52,6 +53,8 @@ packages/
 docs/
   adr/                   architecture decision records
   c4/                    the C4 model as code (Structurizr DSL)
+  projects/              guides for project work built on the platform
+  observability.md       spans, metrics, alerts and logs, and what new code must emit
   evaluation/            the evaluation harness: golden sets through a running inference API, judges, drift
 apps/
   inference-api/         composition root for the request path, over HTTP, and its Containerfile
@@ -80,6 +83,8 @@ up staging.
 `pnpm lint` enforces these through `scripts/check-boundaries.mjs`.
 
 ## Working on it
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how a port, an adapter or a contract change is added.
 
 Requires Node 22 and pnpm 10.
 

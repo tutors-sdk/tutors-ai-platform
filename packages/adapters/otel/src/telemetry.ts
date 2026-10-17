@@ -1,4 +1,4 @@
-import { type Attributes, type Meter, SpanStatusCode, type Tracer } from '@opentelemetry/api';
+import { type Attributes, context, type Meter, type Span as OtelSpan, SpanStatusCode, trace, type Tracer } from '@opentelemetry/api';
 import type { AttributeValue, Span, Telemetry } from '@tutors-ai/core';
 
 /**
@@ -32,6 +32,8 @@ export class OtelTelemetry implements Telemetry {
   readonly #tracer: Tracer;
   readonly #duration;
   readonly #tokens;
+  /** The OpenTelemetry span behind each span handed out, so a child can name its parent (TEL-004). */
+  readonly #spans = new WeakMap<Span, OtelSpan>();
 
   constructor(tracer: Tracer, meter: Meter) {
     this.#tracer = tracer;
@@ -39,9 +41,11 @@ export class OtelTelemetry implements Telemetry {
     this.#tokens = meter.createCounter('tutors_ai.model.tokens', { description: 'Model tokens by direction and level' });
   }
 
-  startSpan(name: string, attributes: Readonly<Record<string, AttributeValue>> = {}): Span {
+  startSpan(name: string, attributes: Readonly<Record<string, AttributeValue>> = {}, parent?: Span): Span {
     try {
-      const span = this.#tracer.startSpan(name, { attributes: scrub(attributes) });
+      const parentSpan = parent === undefined ? undefined : this.#spans.get(parent);
+      const ctx = parentSpan === undefined ? context.active() : trace.setSpan(context.active(), parentSpan);
+      const span = this.#tracer.startSpan(name, { attributes: scrub(attributes) }, ctx);
       const started = performance.now();
       const labels: Attributes = { name };
       const note = (key: string, value: AttributeValue) => {
@@ -49,7 +53,7 @@ export class OtelTelemetry implements Telemetry {
       };
       for (const [key, value] of Object.entries(attributes)) note(key, value);
       const tokens: { in?: number; out?: number } = {};
-      return {
+      const handle: Span = {
         setAttribute: (key, value) => {
           try {
             if (!exportable(key)) return;
@@ -75,6 +79,8 @@ export class OtelTelemetry implements Telemetry {
           }
         },
       };
+      this.#spans.set(handle, span);
+      return handle;
     } catch {
       return DROPPED;
     }

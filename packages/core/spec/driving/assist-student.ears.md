@@ -27,3 +27,4 @@ course material and a named policy.
 - **AS-015** When a question is answered and the bound memory scope is not `none`, the AssistStudent use case shall remember the question and the answer as returned under the bound scope.
 - **AS-016** If evidence cannot be recorded, then the AssistStudent use case shall fail the request rather than return an answer it could not record.
 - **AS-017** The AssistStudent use case shall emit one telemetry span per request carrying the outcome, the refusal reason or depth, the policy version, the model digest and token counts.
+- **AS-018** The AssistStudent use case shall make every driven-port call other than the clock within a child span of the request span, named `<Port>.<operation>` and ended with `error` when the call fails.

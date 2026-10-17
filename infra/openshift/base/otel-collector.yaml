@@ -1,5 +1,7 @@
-# OpenTelemetry collector: traces, model metrics and the evidence-trail log. It prints to its own
-# log (debug exporter) until a backend is chosen; adding one is an exporter change here only.
+# OpenTelemetry collector: traces, model metrics and the evidence-trail log. Metrics are served
+# on :8889 for OpenShift user workload monitoring (observability.yaml scrapes them). Traces and
+# logs print to the collector's own log (debug exporter) until a backend is chosen; adding Tempo
+# or Loki is an exporter change here only (docs/observability.md).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,6 +24,8 @@ data:
     exporters:
       debug:
         verbosity: basic
+      prometheus:
+        endpoint: 0.0.0.0:8889
     extensions:
       health_check:
         endpoint: 0.0.0.0:13133
@@ -35,7 +39,7 @@ data:
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [debug]
+          exporters: [prometheus]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]
@@ -69,6 +73,8 @@ spec:
           ports:
             - name: otlp-http
               containerPort: 4318
+            - name: metrics
+              containerPort: 8889
             - name: health
               containerPort: 13133
           livenessProbe:
@@ -115,3 +121,6 @@ spec:
     - name: otlp-http
       port: 4318
       targetPort: otlp-http
+    - name: metrics
+      port: 8889
+      targetPort: metrics

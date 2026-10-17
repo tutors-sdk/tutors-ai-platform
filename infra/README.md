@@ -8,7 +8,7 @@ infra/
   aws/                    Terraform: VPC, ROSA HCP cluster, CPU and GPU machine pools, EFS
   openshift/
     base/                 inference-api, insights-worker, ollama, postgres, otel-collector,
-                          model-pin, course-exports, network policies
+                          model-pin, course-exports, network policies, monitoring (observability.yaml)
     overlays/staging/     tutors-ai-staging: synthetic learners only, smaller sizes, images from main
     overlays/production/  tutors-ai-production: promoted tags, pinned model digest
     pin-model.sh          pulls the model in a namespace and pins its digest
@@ -64,10 +64,13 @@ The inference API is reachable only from inside its namespace until authenticati
   Ollama, collector, volumes and secret. Production and staging passwords differ.
 - **Staging holds synthetic learners only.** Its namespace and every resource carry
   `tutors-ai/data: synthetic-learners-only`; real student data must never be loaded there.
-- **Default deny.** All ingress is denied, then exactly three flows are allowed, each from pods
-  in the same namespace only:
+- **Default deny.** All ingress is denied, then exactly four flows are allowed:
   `inference-api -> ollama:11434`, `inference-api, insights-worker -> postgres:5432` and
-  `inference-api, insights-worker -> otel-collector:4318`. Nothing else may reach Ollama.
+  `inference-api, insights-worker -> otel-collector:4318`, each from pods in the same namespace
+  only, and OpenShift user workload monitoring to `otel-collector:8889` for metrics. Nothing else
+  may reach Ollama.
+- **Observed.** A ServiceMonitor scrapes the collector and a PrometheusRule alerts on port errors
+  and slow requests (`base/observability.yaml`, `docs/observability.md`).
 - **Nothing exposed.** No Route, Ingress, LoadBalancer or NodePort until authentication lands
   (ADR 0005). There is no router allowance in the network policies for the same reason.
 - **Locked-down containers.** Non-root, no privilege escalation, all capabilities dropped,
