@@ -1,6 +1,6 @@
 # 0006. Governed memory goes through ports, with MemoryHub as the first adapter
 
-Date: 2026-10-17 · Status: Proposed (for the project lead and the student's supervisor)
+Date: 2026-10-17 · Status: Accepted (project lead, 2026-10-17)
 
 ## Context
 
@@ -57,7 +57,7 @@ up in traces, metrics and OpenShift alerts without instrumentation in the adapte
 never question, answer or memory text, so a learner's erasure removes their memories and evidence
 while the log stays append-only. Learner ids in the log are the monorepo's pseudonymous ids.
 
-## Defaults the student may revisit by pull request
+## Defaults the student may revisit by pull request, with a new ADR
 
 - **Fail closed.** If the memory service is unavailable, `AssistStudent` answers without memory
   rather than refusing, and nothing is retained or proposed. Recalling nothing is the closed state

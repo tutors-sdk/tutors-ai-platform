@@ -31,7 +31,7 @@ and the infrastructure is code. It has not yet run on a real cluster.
 | Golden sets, ten cases per level | Need a lecturer |
 | Production model pin (Qwen 3.8 27B, ADR 0005) | Needs a first pull in staging (`infra/openshift/pin-model.sh`) |
 | Identity (Keycloak) and the release gate | Deferred (ADR 0005) |
-| Governed memory with MemoryHub (final-year project) | Ports and planned specs ready (ADR 0006); guide in `docs/projects/governed-memory.md` |
+| Governed memory with MemoryHub (final-year project) | Ports and planned specs ready (ADR 0006, accepted); guide in `docs/projects/governed-memory.md` |
 
 ## Layout
 
