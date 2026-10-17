@@ -14,6 +14,7 @@ import type { LearnerMemory } from '../ports/driven/learner-memory.ts';
 import type { PolicyProvider } from '../ports/driven/policy-provider.ts';
 import { NO_TELEMETRY, type Span, type Telemetry } from '../ports/driven/telemetry.ts';
 import type { AssistStudent } from '../ports/driving/assist-student.ts';
+import { traced } from './traced.ts';
 
 export interface AssistStudentConfig {
   /** Name recorded as the source of evidence this use case writes. */
@@ -77,8 +78,9 @@ export class AssistStudentService implements AssistStudent {
       model: null,
       promptVersion: null,
     };
+    const call = <T>(name: string, run: () => Promise<T>) => traced(this.#telemetry, span, name, run);
     const refuse = async (reason: RefusalReason, retention: MemoryScopeKind): Promise<AssistanceResponse> => {
-      await this.#recordRequest(learner, retention, { outcome: 'refused', reason });
+      await call('EvidenceStore.append', () => this.#recordRequest(learner, retention, { outcome: 'refused', reason }));
       return { kind: 'refused', reason, trace: { ...trace } };
     };
 
@@ -86,7 +88,7 @@ export class AssistStudentService implements AssistStudent {
     if (question.trim().length === 0) return { kind: 'refused', reason: 'empty-question', trace };
 
     // AS-002
-    const policy = await this.#deps.policies.policyFor(learner.courseId, learner.level);
+    const policy = await call('PolicyProvider.policyFor', () => this.#deps.policies.policyFor(learner.courseId, learner.level));
     if (policy === null) return refuse('no-policy', learner.memory.kind);
 
     // AS-003
@@ -101,7 +103,7 @@ export class AssistStudentService implements AssistStudent {
     span.setAttribute('policy.version', policy.version);
 
     // AS-004
-    const material = await this.#retrieve(learner, question, policy.maxMaterial);
+    const material = await call('CourseContent.retrieve', () => this.#retrieve(learner, question, policy.maxMaterial));
     trace.materialIds = material.map((m) => m.id);
     if (material.length === 0) return refuse('no-material', bound.memory.kind);
 
@@ -109,18 +111,20 @@ export class AssistStudentService implements AssistStudent {
     const memory: readonly MemoryEntry[] =
       bound.memory.kind === 'none'
         ? []
-        : await this.#deps.memory.recall(learner, bound.memory, this.#deps.config.memoryRecallLimit);
+        : await call('LearnerMemory.recall', () => this.#deps.memory.recall(learner, bound.memory, this.#deps.config.memoryRecallLimit));
 
     // AS-006, AS-007
     let completion: Completion;
     try {
-      completion = await this.#deps.model.complete({
-        question,
-        material,
-        bound,
-        memory,
-        timeoutMs: this.#deps.config.modelTimeoutMs,
-      });
+      completion = await call('LanguageModel.complete', () =>
+        this.#deps.model.complete({
+          question,
+          material,
+          bound,
+          memory,
+          timeoutMs: this.#deps.config.modelTimeoutMs,
+        }),
+      );
     } catch (error) {
       if (PortError.is(error)) return refuse('model-unavailable', bound.memory.kind);
       throw error;
@@ -146,21 +150,25 @@ export class AssistStudentService implements AssistStudent {
     const text = truncated ? completion.text.slice(0, bound.maxResponseChars) : completion.text;
 
     // AS-013
-    await this.#recordRequest(learner, bound.memory.kind, { outcome: 'answered' });
-    await this.#deps.evidence.append({
-      ...this.#evidenceBase(learner, bound.memory.kind),
-      type: 'assistance-given',
-      depth: completion.depth,
-      detail: { policyVersion: bound.policyVersion, modelDigest: completion.model.digest },
-    });
+    await call('EvidenceStore.append', () => this.#recordRequest(learner, bound.memory.kind, { outcome: 'answered' }));
+    await call('EvidenceStore.append', () =>
+      this.#deps.evidence.append({
+        ...this.#evidenceBase(learner, bound.memory.kind),
+        type: 'assistance-given',
+        depth: completion.depth,
+        detail: { policyVersion: bound.policyVersion, modelDigest: completion.model.digest },
+      }),
+    );
 
     // AS-015
     if (bound.memory.kind !== 'none') {
-      await this.#deps.memory.remember(learner, bound.memory, {
-        question,
-        answer: text,
-        recordedAt: this.#deps.clock.now(),
-      });
+      await call('LearnerMemory.remember', () =>
+        this.#deps.memory.remember(learner, bound.memory, {
+          question,
+          answer: text,
+          recordedAt: this.#deps.clock.now(),
+        }),
+      );
     }
 
     return { kind: 'answered', depth: completion.depth, text, citations: completion.citations, truncated, trace };

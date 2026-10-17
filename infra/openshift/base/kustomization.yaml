@@ -17,4 +17,5 @@ resources:
   - ollama.yaml
   - postgres.yaml
   - otel-collector.yaml
+  - observability.yaml
   - network-policies.yaml

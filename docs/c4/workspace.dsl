@@ -19,6 +19,7 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
                 contentAdapter = component "Course export adapter" "CourseContent port." "packages/adapters/course-content"
                 postgresAdapter = component "PostgreSQL adapter" "EvidenceStore and LearnerMemory ports." "packages/adapters/postgres"
                 keycloakAdapter = component "Keycloak adapter" "Identity port." "packages/adapters/keycloak"
+                memoryHubAdapter = component "MemoryHub adapter" "LearnerMemory and GovernedMemoryStore ports. Planned (ADR 0006)." "packages/adapters/memoryhub"
                 otelAdapter = component "OpenTelemetry adapter" "Telemetry port." "packages/adapters/otel"
             }
             insightsWorker = container "insights-worker" "Batch evidence processing and insight generation." "TypeScript"
@@ -27,6 +28,8 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
             keycloak = container "Keycloak" "OIDC realm for inference tokens." "Keycloak"
             otel = container "OpenTelemetry collector" "Traces, model metrics, evidence-trail log." "OpenTelemetry"
         }
+
+        memoryHub = softwareSystem "MemoryHub" "Kubernetes-native agent memory over MCP: scopes, semantic search, provenance, versioning, promotion. Planned (ADR 0006)." "External"
 
         courseExport = softwareSystem "Course export" "Course material exported from Tutors." "External"
 
@@ -39,6 +42,7 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         inferenceApi -> postgres "Appends evidence, reads and writes memory"
         insightsWorker -> postgres "Reads evidence, writes insights"
         inferenceApi -> keycloak "Validates tokens with"
+        inferenceApi -> memoryHub "Reads and writes governed memory" "MCP, in-cluster only"
         inferenceApi -> otel "Emits to"
 
         contractAdapter -> core "Drives"
@@ -47,11 +51,13 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         core -> contentAdapter "CourseContent"
         core -> postgresAdapter "EvidenceStore, LearnerMemory"
         core -> keycloakAdapter "Identity"
+        core -> memoryHubAdapter "LearnerMemory, GovernedMemoryStore"
         core -> otelAdapter "Telemetry"
         ollamaAdapter -> ollama "HTTP"
         contentAdapter -> courseExport "Reads"
         postgresAdapter -> postgres "SQL"
         keycloakAdapter -> keycloak "OIDC"
+        memoryHubAdapter -> memoryHub "MCP"
         otelAdapter -> otel "OTLP"
     }
 
