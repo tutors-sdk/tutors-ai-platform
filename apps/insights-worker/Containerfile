@@ -8,11 +8,10 @@ ARG RUNTIME_IMAGE=registry.access.redhat.com/ubi9/nodejs-22-minimal:9.6
 FROM ${BUILD_IMAGE} AS build
 USER 0
 WORKDIR /src
-# pnpm at the exact version package.json names.
-RUN corepack enable pnpm
 # Dependencies first, so source edits reuse the cached store.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-RUN pnpm fetch --frozen-lockfile
+# pnpm at the exact version package.json names (UBI's Node ships without corepack).
+RUN npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm fetch --frozen-lockfile
 COPY . .
 RUN pnpm install --offline --frozen-lockfile && pnpm --filter @tutors-ai/app-insights-worker build
 
