@@ -77,10 +77,10 @@ export class OllamaLanguageModel implements LanguageModel {
         }),
       });
       if (!response.ok || response.body === null) {
-        throw new PortError(PORT, 'unavailable', `Ollama answered ${response.status} ${await safeText(response)}`);
+        throw new PortError(PORT, statusKind(response.status), `Ollama answered ${response.status} ${await safeText(response)}`);
       }
       const text = new JsonTextStream();
-      let usage = { inputTokens: 0, outputTokens: 0 };
+      let usage: Completion['usage'] | undefined;
       for await (const line of ndjson(response.body)) {
         if (line.error !== undefined) throw new PortError(PORT, 'unavailable', `Ollama error: ${line.error}`);
         const delta = text.push(line.message?.content ?? '');
@@ -89,6 +89,8 @@ export class OllamaLanguageModel implements LanguageModel {
           usage = { inputTokens: line.prompt_eval_count ?? 0, outputTokens: line.eval_count ?? 0 };
         }
       }
+      // OLL-006: a body that ends without the final line was cut off, whatever it holds so far.
+      if (usage === undefined) throw new PortError(PORT, 'unavailable', 'Ollama closed the response before its final line');
       yield { kind: 'done', completion: this.#parse(text.json, usage) };
     } catch (error) {
       throw toPortError(error, request.timeoutMs);
@@ -98,8 +100,14 @@ export class OllamaLanguageModel implements LanguageModel {
   async #verifyDigest(signal: AbortSignal): Promise<void> {
     if (this.#verified) return;
     const response = await this.#fetch(new URL('/api/tags', this.#config.baseUrl), { signal });
-    if (!response.ok) throw new PortError(PORT, 'unavailable', `Ollama /api/tags answered ${response.status}`);
-    const { models = [] } = (await response.json()) as { models?: { name: string; digest: string }[] };
+    if (!response.ok) throw new PortError(PORT, statusKind(response.status), `Ollama /api/tags answered ${response.status}`);
+    let list: { models?: { name: string; digest: string }[] };
+    try {
+      list = JSON.parse(await response.text()) as typeof list;
+    } catch {
+      throw new PortError(PORT, 'invalid-response', 'Ollama /api/tags sent a body that is not JSON');
+    }
+    const { models = [] } = list;
     const found = models.find((m) => m.name === this.#config.model);
     if (found === undefined) throw new PortError(PORT, 'unavailable', `model ${this.#config.model} is not loaded`);
     if (`sha256:${found.digest.replace(/^sha256:/, '')}` !== this.#identity.digest) {
@@ -157,6 +165,11 @@ function parseLine(line: string): ChatResponseLine {
   } catch {
     throw new PortError(PORT, 'invalid-response', 'Ollama sent a line that is not JSON');
   }
+}
+
+/** OLL-001, OLL-002: worth trying again later, or a request Ollama will never accept. */
+function statusKind(status: number): 'unavailable' | 'rejected' {
+  return status >= 500 || status === 408 || status === 429 ? 'unavailable' : 'rejected';
 }
 
 async function safeText(response: Response): Promise<string> {

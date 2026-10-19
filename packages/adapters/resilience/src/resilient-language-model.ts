@@ -148,7 +148,7 @@ export class ResilientLanguageModel implements LanguageModel {
   }
 
   #remaining(deadline: number): number {
-    return Math.max(0, deadline - this.#timer.now());
+    return Math.max(0, Math.ceil(deadline - this.#timer.now()));
   }
 
   #shed(reason: ShedReason): PortError {
