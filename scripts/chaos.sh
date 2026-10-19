@@ -22,7 +22,7 @@ reset_ms=${MODEL_CIRCUIT_RESET_MS:-30000}
 fail() { echo "CHAOS FAILED: $*" >&2; $COMPOSE logs --no-color --tail 80 inference-api >&2; exit 1; }
 
 assist() {
-  curl -s --max-time 180 -o assist.json -w '%{http_code} %{time_total}' "$API/v0/assist" -H 'content-type: application/json' -d '{
+  curl -s --max-time 180 -o assist.json -w '%{http_code} %{time_total}\n' "$API/v0/assist" -H 'content-type: application/json' -d '{
     "contractVersion": "0.1.0",
     "learner": {"learnerId": "chaos-learner", "sessionId": "chaos-session", "courseId": "full-stack-1",
                 "labId": "lab-01-loops", "level": "first-year", "memory": {"kind": "session", "sharing": "private"}},
@@ -30,6 +30,8 @@ assist() {
   }'
 }
 reason() { node -e 'const b = JSON.parse(require("fs").readFileSync("assist.json", "utf8")); console.log(b.kind === "refused" ? b.reason : b.kind)'; }
+# Read the log whole: under pipefail, grep -q closing a pipe early fails the logs command.
+api_log() { $COMPOSE logs --no-color inference-api 2>&1; }
 api_restarts() { docker inspect -f '{{.RestartCount}} {{.State.Running}}' "$($COMPOSE ps -q inference-api)"; }
 
 before=$(api_restarts)
@@ -43,7 +45,7 @@ for i in $(seq 1 $((failures + 1))); do
   echo "request $i: refused model-unavailable in ${seconds}s"
 done
 awk -v s="$seconds" 'BEGIN { exit !(s < 1.0) }' || fail "the refusal after the circuit opened took ${seconds}s; it should fail fast"
-$COMPOSE logs --no-color inference-api | grep -q '"msg":"model resilience","type":"circuit","from":"closed","to":"open"' || fail "no log line for the circuit opening"
+grep -q '"msg":"model resilience","type":"circuit","from":"closed","to":"open"' <<<"$(api_log)" || fail "no log line for the circuit opening"
 
 echo "== 2. Ollama back"
 $COMPOSE start ollama
@@ -57,7 +59,7 @@ for _ in $(seq 1 10); do
 done
 [ -n "$recovered" ] || fail "assist still refused as model-unavailable after Ollama came back"
 echo "assist answered ($(reason)) in ${seconds}s"
-$COMPOSE logs --no-color inference-api | grep -q '"type":"circuit","from":"half-open","to":"closed"' || fail "no log line for the circuit closing"
+grep -q '"type":"circuit","from":"half-open","to":"closed"' <<<"$(api_log)" || fail "no log line for the circuit closing"
 
 echo "== 3. PostgreSQL restarted"
 $COMPOSE restart postgres
