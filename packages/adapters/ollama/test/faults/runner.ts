@@ -30,6 +30,8 @@ const describeError = (error: unknown) =>
   PortError.is(error) ? `PortError(${error.kind}) "${error.message}"` : error instanceof Error ? `${error.name} "${error.message}"` : String(error);
 
 /** Every way the observation differs from the outcome; empty when it matches. */
+const TIMER_GRANULARITY_MS = 1;
+
 export function brokenInvariants(expected: Outcome, seen: Observation): string[] {
   const broken: string[] = [];
   const { settlement } = expected;
@@ -50,8 +52,9 @@ export function brokenInvariants(expected: Outcome, seen: Observation): string[]
     }
   }
   if (seen.requests !== expected.requests) broken.push(`requests: expected ${expected.requests}, sent ${seen.requests}`);
-  if (seen.elapsedMs < expected.elapsedMs.min || seen.elapsedMs > expected.elapsedMs.max) {
-    broken.push(`elapsed: expected ${expected.elapsedMs.min}-${expected.elapsedMs.max}ms, took ${Math.round(seen.elapsedMs)}ms`);
+  // Node timers count whole milliseconds, so a 10 ms delay can measure as 9.6 ms here.
+  if (seen.elapsedMs < expected.elapsedMs.min - TIMER_GRANULARITY_MS || seen.elapsedMs > expected.elapsedMs.max) {
+    broken.push(`elapsed: expected ${expected.elapsedMs.min}-${expected.elapsedMs.max}ms, took ${seen.elapsedMs.toFixed(1)}ms`);
   }
   if (!isDeepStrictEqual(seen.events, expected.events)) broken.push(`events: expected [${expected.events.join(', ')}], got [${seen.events.join(', ')}]`);
   return broken;
