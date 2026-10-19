@@ -45,6 +45,19 @@ describe('OllamaLanguageModel', () => {
     });
   });
 
+  it('posts JSON to /api/chat, and gives both requests the timeout signal', async () => {
+    const server = await stub();
+    const seen: { path: string; init: RequestInit | undefined }[] = [];
+    const fetch: typeof globalThis.fetch = (input, init) => {
+      seen.push({ path: new URL(String(input)).pathname, init });
+      return globalThis.fetch(input, init);
+    };
+    await new OllamaLanguageModel({ baseUrl: server.url, model: STUB_MODEL, digest: STUB_DIGEST, fetch }).complete(aCompletionRequest());
+    expect(seen.map((s) => s.path)).toEqual(['/api/tags', '/api/chat']);
+    expect(seen.every((s) => s.init?.signal instanceof AbortSignal)).toBe(true);
+    expect(seen[1]?.init).toMatchObject({ method: 'POST', headers: { 'content-type': 'application/json' } });
+  });
+
   it('refuses to answer when the served weights do not match the pinned digest', async () => {
     const server = await stub();
     const model = new OllamaLanguageModel({ baseUrl: server.url, model: STUB_MODEL, digest: 'sha256:' + '0'.repeat(64) });

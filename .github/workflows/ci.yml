@@ -16,10 +16,14 @@ concurrency:
 
 jobs:
   check:
-    name: Typecheck, lint, EARS gate, unit and contract tests
+    name: Typecheck, lints, ratchets, EARS gate, unit, property and fault tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The ratchets compare with the base: HEAD^1 is the base tip of a pull request's merge
+          # commit, and the previous commit on a push.
+          fetch-depth: 2
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -28,11 +32,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm lint:suite-health
+      - run: pnpm lint:determinism
+      - run: pnpm ratchets
+        env:
+          RATCHET_BASE_REF: HEAD^1
       - run: pnpm ears
+      # Unit tests include the model-based properties (100 runs each), the Ollama fault catalogue
+      # and its self-test, and the lints' negative fixtures.
       - run: pnpm test --project unit
 
-  mutation:
-    name: Mutation score (core)
+  soak:
+    name: Heap soak (10,000 requests, planted leak must be caught)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,13 +53,33 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:soak
+        env:
+          SOAK_REQUESTS: 10000
+
+  mutation:
+    name: Mutation score (core, resilience, Ollama)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # First prove the gate can still go red: the known-weak fixture must keep survivors.
+      - run: pnpm mutation:fixture
       - run: pnpm mutation
       - run: node scripts/check-mutation.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: mutation-report
-          path: packages/core/reports/mutation/
+          path: |
+            packages/core/reports/mutation/
+            packages/adapters/resilience/reports/mutation/
+            packages/adapters/ollama/reports/mutation/
 
   integration:
     name: Adapter integration (Ollama CPU model, PostgreSQL)
@@ -178,6 +209,15 @@ jobs:
           done
           docker compose logs otel-collector
           exit 1
+      # Takes Ollama, then PostgreSQL, away and checks the API fails fast, recovers and survives.
+      - name: Chaos (scripts/chaos.sh)
+        run: |
+          docker compose up -d --no-deps inference-api
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:8080/readyz >/dev/null && break; sleep 2; done
+          scripts/chaos.sh
+        env:
+          MODEL_CIRCUIT_FAILURES: 2
+          MODEL_CIRCUIT_RESET_MS: 5000
       - name: Logs
         if: always()
         run: docker compose logs --no-color
@@ -207,3 +247,17 @@ jobs:
       # Once production is pinned, drop --expect-unpinned; check.sh fails if it is left in.
       - name: Production (every policy but the model pin, which must still be UNPINNED)
         run: infra/ci/check.sh --skip-terraform --expect-unpinned production
+
+  # The one check branch protection needs: it fails unless every job above succeeded.
+  ci-success:
+    name: ci-success
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [check, soak, mutation, integration, image, compose, infra]
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' >/dev/null

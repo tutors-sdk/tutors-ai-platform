@@ -230,6 +230,13 @@ export const CATALOGUE: readonly Fault[] = [
     expected: () => finalFailure('rejected', new RegExp(`^model ${STUB_MODEL.replace('.', '\\.')} has digest f{64}, expected sha256:${STUB_DIGEST}$`), 1),
   },
   {
+    id: 'digest-listed-with-prefix',
+    title: 'The model list writes the pinned digest with its sha256: prefix',
+    spec: 'OLL-007',
+    exchange: () => [{ ...TAGS, chunks: [JSON.stringify({ models: [{ name: STUB_MODEL, digest: `sha256:${STUB_DIGEST}` }] })] }, GOOD_CHAT],
+    expected: () => resolvesGood(),
+  },
+  {
     id: 'model-not-loaded',
     title: 'The model list does not include the pinned model',
     spec: 'OLL-008',

@@ -26,7 +26,10 @@ async function streamed(model: LanguageModel): Promise<Answer> {
   let deltas = '';
   let final: Completion | undefined;
   for await (const chunk of model.stream(request())) {
-    if (chunk.kind === 'delta') deltas += chunk.text;
+    if (chunk.kind === 'delta') {
+      if (chunk.text === '') throw new Error('the stream yielded an empty delta');
+      deltas += chunk.text;
+    }
     else final = chunk.completion;
   }
   if (final === undefined) throw new Error('the stream ended without a completion');

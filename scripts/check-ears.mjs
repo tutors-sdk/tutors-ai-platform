@@ -84,6 +84,10 @@ const testSources = [
   ...walk(join(root, 'packages/testing/src/kits'), (p) => p.endsWith('.ts')),
 ].map((p) => readFileSync(p, 'utf8'));
 const testNames = testSources.flatMap((src) => [...src.matchAll(/\bit\(\s*(['"`])(.+?)\1/g)].map((m) => m[2]));
+// A fault in a fault catalogue runs as a test named after the requirement it cites.
+for (const catalogue of walk(join(root, 'packages'), (p) => p.endsWith('/test/faults/catalogue.ts'))) {
+  for (const m of readFileSync(catalogue, 'utf8').matchAll(/\bspec: '([A-Z]+-\d{3})'/g)) testNames.push(m[1]);
+}
 let traced = 0;
 let total = 0;
 for (const { path, meta, requirements } of specs.values()) {

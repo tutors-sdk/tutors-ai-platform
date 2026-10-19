@@ -16,7 +16,7 @@
     "ears": "node scripts/check-ears.mjs",
     "test": "vitest run",
     "test:integration": "vitest run --project integration",
-    "test:properties": "FC_NUM_RUNS=10000 vitest run --project unit property",
+    "test:properties": "FC_NUM_RUNS=10000 vitest run --project unit --testTimeout=600000 property",
     "test:soak": "vitest run --project soak",
     "mutation": "pnpm --workspace-concurrency=1 --filter @tutors-ai/core --filter @tutors-ai/adapter-resilience --filter @tutors-ai/adapter-ollama run mutation",
     "mutation:fixture": "cd scripts/mutation-fixture && stryker run && node ../check-mutation.mjs --fixture",

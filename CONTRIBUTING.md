@@ -10,11 +10,16 @@ Node 22 and pnpm 10.
 
 ```sh
 pnpm install
-pnpm check      # typecheck, lint and dependency boundaries, EARS gate, unit and contract tests
-pnpm mutation   # Stryker on the core, then: node scripts/check-mutation.mjs
+pnpm check      # typecheck, lints (boundaries, suite health, determinism), EARS gate, unit,
+                # contract, property and fault tests
+pnpm ratchets   # floors and exception lists moved only the allowed way against origin/main
+pnpm mutation   # Stryker on each gated package, then: node scripts/check-mutation.mjs
+pnpm test:soak  # the heap soak
 ```
 
-`pnpm test:integration` needs real services; see the README.
+`pnpm test:integration` needs real services; see the README. `scripts/chaos.sh` runs against the
+compose stack. What each tier owns and the signal that proves it can fail is in
+[docs/testing.md](docs/testing.md).
 
 ## Adding a port
 
@@ -40,6 +45,9 @@ pnpm mutation   # Stryker on the core, then: node scripts/check-mutation.mjs
    and read their endpoint from the environment.
 3. Raise `PortError` for failures of the service; the core maps those to outcomes and its spans
    record the kind. Adapters create no spans of their own ([docs/observability.md](docs/observability.md)).
+   Choose the kind with care: the resilience decorator retries only `unavailable` and counts only
+   `unavailable` and `timeout` against the circuit (ADR 0007). For an adapter over a network,
+   add a fault catalogue like `packages/adapters/ollama/test/faults/`.
 4. Wire it in the composition root (`apps/*/src/compose.ts`), the only place that names adapters,
    with its configuration in `apps/*/src/config.ts`.
 5. Add it to the C4 model in `docs/c4/workspace.dsl`.

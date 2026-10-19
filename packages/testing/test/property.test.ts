@@ -36,7 +36,7 @@ describe('expectCounterexample', () => {
 
   it('fails when every run passes, so a known-bad fixture that is not bad is caught', async () => {
     await expect(expectCounterexample(fc.property(fc.integer(), () => true))).rejects.toThrow(
-      /^expected a counterexample against a known-bad implementation, but 200 runs passed/,
+      /^expected a counterexample against a known-bad implementation, but \d+ runs passed/,
     );
   });
 });
