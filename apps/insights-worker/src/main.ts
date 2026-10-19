@@ -8,7 +8,10 @@ import { runInsights } from './run.ts';
 
 const config = readConfig(process.env);
 const log = (entry: Record<string, unknown>) => console.log(JSON.stringify(entry));
-const pool = new pg.Pool({ connectionString: config.pgUrl, max: 2 });
+// Bounded connection wait, and an 'error' listener: an idle client that loses its server emits
+// 'error', and an unheard 'error' crashes the process.
+const pool = new pg.Pool({ connectionString: config.pgUrl, max: 2, connectionTimeoutMillis: 5_000 });
+pool.on('error', (error) => log({ msg: 'idle PostgreSQL client failed', error: error.message }));
 const otel = config.otelEndpoint === undefined ? undefined : startOtel({ endpoint: config.otelEndpoint, serviceName: 'tutors-ai-insights-worker' });
 try {
   await migrate(pool, config.pgSchema);

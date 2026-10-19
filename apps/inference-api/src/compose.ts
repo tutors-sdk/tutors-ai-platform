@@ -1,5 +1,6 @@
 import { CourseExportContent, loadCourseExports } from '@tutors-ai/adapter-course-content';
 import { OllamaLanguageModel } from '@tutors-ai/adapter-ollama';
+import { ResilientLanguageModel, type ResilienceEvent } from '@tutors-ai/adapter-resilience';
 import { startOtel } from '@tutors-ai/adapter-otel';
 import { migrate, PostgresEvidenceStore, PostgresInsightStore, PostgresLearnerMemory } from '@tutors-ai/adapter-postgres';
 import { SystemClock } from '@tutors-ai/adapter-system';
@@ -14,9 +15,32 @@ export interface Composed {
   close(): Promise<void>;
 }
 
+/** One JSON line per resilience event, so the circuit's state shows in the pod log. */
+export function logResilience(event: ResilienceEvent, log: (line: string) => void = console.log): void {
+  log(JSON.stringify({ msg: 'model resilience', ...event }));
+}
+
+/**
+ * A pool that cannot hang the request path or take the process down: bounded
+ * waits for a connection and for each statement, and an error listener, since
+ * an idle client that loses its server emits 'error' and an unheard 'error'
+ * crashes Node.
+ */
+export function createPool(config: Pick<Config, 'pgUrl' | 'pgConnectTimeoutMs' | 'pgStatementTimeoutMs'>, max: number): pg.Pool {
+  const pool = new pg.Pool({
+    connectionString: config.pgUrl,
+    max,
+    connectionTimeoutMillis: config.pgConnectTimeoutMs,
+    statement_timeout: config.pgStatementTimeoutMs,
+    query_timeout: config.pgStatementTimeoutMs + 1_000,
+  });
+  pool.on('error', (error) => console.error(JSON.stringify({ msg: 'idle PostgreSQL client failed', error: error.message })));
+  return pool;
+}
+
 /** The composition root: the only place that knows which adapter serves which port. */
 export async function compose(config: Config): Promise<Composed> {
-  const pool = new pg.Pool({ connectionString: config.pgUrl, max: 10 });
+  const pool = createPool(config, 10);
   try {
     await migrate(pool, config.pgSchema);
     const otel = config.otelEndpoint === undefined ? undefined : startOtel({ endpoint: config.otelEndpoint, serviceName: 'tutors-ai-inference-api' });
@@ -26,7 +50,7 @@ export async function compose(config: Config): Promise<Composed> {
     const assist = new AssistStudentService({
       policies: new ContractPolicyProvider(),
       content: new CourseExportContent(await loadCourseExports(config.courseExportDir)),
-      model: new OllamaLanguageModel(config.ollama),
+      model: new ResilientLanguageModel(new OllamaLanguageModel(config.ollama), config.modelResilience, { observe: (e) => logResilience(e) }),
       memory,
       evidence,
       clock,

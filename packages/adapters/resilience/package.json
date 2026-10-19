@@ -1,0 +1,22 @@
+{
+  "name": "@tutors-ai/adapter-resilience",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "Resilience around a driven port: circuit breaker, bounded retry with jittered backoff and a bulkhead for the LanguageModel.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "mutation": "stryker run"
+  },
+  "dependencies": {
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

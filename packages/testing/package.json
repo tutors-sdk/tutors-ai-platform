@@ -9,7 +9,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@tutors-ai/core": "workspace:*"
+    "@tutors-ai/core": "workspace:*",
+    "fast-check": "^4.10.2"
   },
   "peerDependencies": {
     "vitest": "^4.1.0"

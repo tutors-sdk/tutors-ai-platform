@@ -1,15 +1,22 @@
+import type { ResilienceOptions } from '@tutors-ai/adapter-resilience';
+
 /** Everything the composition root reads from its environment. */
 export interface Config {
   readonly port: number;
   readonly ollama: { readonly baseUrl: string; readonly model: string; readonly digest: string };
   readonly pgUrl: string;
   readonly pgSchema: string;
+  /** How long to wait for a PostgreSQL connection, and for any one statement. */
+  readonly pgConnectTimeoutMs: number;
+  readonly pgStatementTimeoutMs: number;
   readonly courseExportDir: string;
   /** OTLP/HTTP collector base URL; telemetry is off when absent. */
   readonly otelEndpoint: string | undefined;
   /** The evidence `source` stamped on what this service records. */
   readonly evidenceSource: string;
   readonly modelTimeoutMs: number;
+  /** Circuit breaker, retry and bulkhead around the model (ADR 0007). */
+  readonly modelResilience: ResilienceOptions;
   readonly memoryRecallLimit: number;
   readonly maxClockSkewMs: number;
 }
@@ -54,10 +61,21 @@ export function readConfig(env: Env): Config {
     ollama: { baseUrl: url(env, 'OLLAMA_URL'), model: required(env, 'OLLAMA_MODEL'), digest },
     pgUrl: url(env, 'PG_URL'),
     pgSchema: env['PG_SCHEMA']?.trim() || 'public',
+    pgConnectTimeoutMs: integer(env, 'PG_CONNECT_TIMEOUT_MS', 5_000, 1),
+    pgStatementTimeoutMs: integer(env, 'PG_STATEMENT_TIMEOUT_MS', 10_000, 1),
     courseExportDir: required(env, 'COURSE_EXPORT_DIR'),
     otelEndpoint: otel === undefined || otel === '' ? undefined : otel,
     evidenceSource: env['EVIDENCE_SOURCE']?.trim() || 'inference-api',
     modelTimeoutMs: integer(env, 'MODEL_TIMEOUT_MS', 30_000, 1),
+    modelResilience: {
+      circuit: {
+        failureThreshold: integer(env, 'MODEL_CIRCUIT_FAILURES', 5, 1),
+        resetAfterMs: integer(env, 'MODEL_CIRCUIT_RESET_MS', 30_000, 1),
+      },
+      retries: integer(env, 'MODEL_RETRIES', 1, 0),
+      backoff: { baseMs: integer(env, 'MODEL_RETRY_BASE_MS', 250, 1), maxMs: integer(env, 'MODEL_RETRY_MAX_MS', 2_000, 1) },
+      bulkhead: { maxConcurrent: integer(env, 'MODEL_MAX_CONCURRENT', 4, 1), maxQueued: integer(env, 'MODEL_MAX_QUEUED', 32, 0) },
+    },
     memoryRecallLimit: integer(env, 'MEMORY_RECALL_LIMIT', 6, 0),
     maxClockSkewMs: integer(env, 'MAX_CLOCK_SKEW_MS', 60_000, 0),
   };
