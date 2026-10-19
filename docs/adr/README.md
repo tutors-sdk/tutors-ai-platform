@@ -8,5 +8,6 @@
 | [0004](0004-memory-scope-model.md) | Agent memory is a typed scope selected with the capability level | Accepted |
 | [0005](0005-first-release-scope.md) | First model candidate, insights in the first release, auth and release gate deferred | Accepted |
 | [0006](0006-governed-memory-through-memoryhub.md) | Governed memory goes through ports, with MemoryHub as the first adapter | Accepted |
+| [0007](0007-model-resilience.md) | Circuit breaker, bounded retry and bulkhead around the model; bounded PostgreSQL waits | Proposed |
 
 New ADRs copy the shape of these: context, decision, consequences. Number them in order.

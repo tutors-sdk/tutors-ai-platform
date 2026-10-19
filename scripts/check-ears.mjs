@@ -56,6 +56,12 @@ for (const kind of ['driving', 'driven']) {
   }
 }
 
+// 1b. Adapter specifications: optional, but linted and traced the same way when present.
+for (const adapter of walk(join(root, 'packages/adapters'), (p) => p.endsWith('.ears.md'))) {
+  const spec = parseSpec(adapter);
+  if (spec) specs.set(adapter, spec);
+}
+
 // 2. Form.
 const seen = new Map();
 for (const { path, meta, requirements } of specs.values()) {
@@ -78,6 +84,10 @@ const testSources = [
   ...walk(join(root, 'packages/testing/src/kits'), (p) => p.endsWith('.ts')),
 ].map((p) => readFileSync(p, 'utf8'));
 const testNames = testSources.flatMap((src) => [...src.matchAll(/\bit\(\s*(['"`])(.+?)\1/g)].map((m) => m[2]));
+// A fault in a fault catalogue runs as a test named after the requirement it cites.
+for (const catalogue of walk(join(root, 'packages'), (p) => p.endsWith('/test/faults/catalogue.ts'))) {
+  for (const m of readFileSync(catalogue, 'utf8').matchAll(/\bspec: '([A-Z]+-\d{3})'/g)) testNames.push(m[1]);
+}
 let traced = 0;
 let total = 0;
 for (const { path, meta, requirements } of specs.values()) {
@@ -90,9 +100,10 @@ for (const { path, meta, requirements } of specs.values()) {
   }
 }
 
-const portCount = specs.size;
+const portCount = [...specs.keys()].filter((p) => p.startsWith(core)).length;
+const adapterCount = specs.size - portCount;
 if (failures.length > 0) {
   console.error(`EARS gate failed (${failures.length}):\n  ${failures.join('\n  ')}`);
   process.exit(1);
 }
-console.log(`EARS gate passed: ${portCount} ports specified, ${seen.size} requirements, ${traced}/${total} implemented requirements traced to tests.`);
+console.log(`EARS gate passed: ${portCount} ports and ${adapterCount} adapter behaviours specified, ${seen.size} requirements, ${traced}/${total} implemented requirements traced to tests.`);

@@ -15,6 +15,7 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
                 contractAdapter = component "Contract HTTP adapter" "Validates the token and maps contract schemas to ports." "packages/contract"
                 harness = component "Evaluation harness" "Runs golden sets through the same ports." "packages/evaluation"
                 core = component "Core" "AssistStudent, RecordEvidence, ExplainLabInsights, RecommendInterventions, policy." "packages/core"
+                resilienceAdapter = component "Resilience decorator" "LanguageModel port: circuit breaker, bounded retry and bulkhead around the model adapter (ADR 0007)." "packages/adapters/resilience"
                 ollamaAdapter = component "Ollama adapter" "LanguageModel port." "packages/adapters/ollama"
                 contentAdapter = component "Course export adapter" "CourseContent port." "packages/adapters/course-content"
                 postgresAdapter = component "PostgreSQL adapter" "EvidenceStore and LearnerMemory ports." "packages/adapters/postgres"
@@ -47,7 +48,8 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
 
         contractAdapter -> core "Drives"
         harness -> core "Drives"
-        core -> ollamaAdapter "LanguageModel"
+        core -> resilienceAdapter "LanguageModel"
+        resilienceAdapter -> ollamaAdapter "LanguageModel, while the circuit is closed"
         core -> contentAdapter "CourseContent"
         core -> postgresAdapter "EvidenceStore, LearnerMemory"
         core -> keycloakAdapter "Identity"

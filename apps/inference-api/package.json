@@ -14,6 +14,7 @@
     "@tutors-ai/adapter-ollama": "workspace:*",
     "@tutors-ai/adapter-otel": "workspace:*",
     "@tutors-ai/adapter-postgres": "workspace:*",
+    "@tutors-ai/adapter-resilience": "workspace:*",
     "@tutors-ai/adapter-system": "workspace:*",
     "@tutors-ai/contract": "workspace:*",
     "@tutors-ai/core": "workspace:*",

@@ -156,6 +156,13 @@ It reads `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_DIGEST` (required, a sha256: mode
 `PG_SCHEMA`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `EVIDENCE_SOURCE`, `MODEL_TIMEOUT_MS`,
 `MEMORY_RECALL_LIMIT` and `MAX_CLOCK_SKEW_MS`. It migrates its schema on start.
 
+The model sits behind a circuit breaker, a bounded retry and a bulkhead (ADR 0007), tuned with
+`MODEL_CIRCUIT_FAILURES` (5), `MODEL_CIRCUIT_RESET_MS` (30000), `MODEL_RETRIES` (1),
+`MODEL_RETRY_BASE_MS` (250), `MODEL_RETRY_MAX_MS` (2000), `MODEL_MAX_CONCURRENT` (4) and
+`MODEL_MAX_QUEUED` (32). PostgreSQL waits are bounded by `PG_CONNECT_TIMEOUT_MS` (5000) and
+`PG_STATEMENT_TIMEOUT_MS` (10000). Each circuit change, retry and shed call is one JSON log line
+(`"msg":"model resilience"`).
+
 ```sh
 pnpm --filter @tutors-ai/app-inference-api build && node apps/inference-api/dist/main.mjs
 podman build -f apps/inference-api/Containerfile -t tutors-ai-inference-api .

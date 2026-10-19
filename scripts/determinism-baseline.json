@@ -1,0 +1,10 @@
+{
+  "$comment": "Time and randomness read outside an injected Clock or Timer, per file. Only shrinks: node scripts/check-determinism.ts --update.",
+  "sites": {
+    "apps/inference-api/src/main.ts": { "setTimeout": 1 },
+    "packages/adapters/ollama/src/ollama-language-model.ts": { "AbortSignal.timeout()": 1 },
+    "packages/adapters/otel/src/telemetry.ts": { "performance.now()": 2 },
+    "packages/adapters/resilience/src/resilient-language-model.ts": { "Math.random()": 1 },
+    "packages/evaluation/src/cli.ts": { "new Date()": 1 }
+  }
+}

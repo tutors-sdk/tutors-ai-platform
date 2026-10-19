@@ -67,6 +67,9 @@ services:
       EVIDENCE_SOURCE: inference-api
       # A CPU model on a laptop is slow; the cluster default is 30s.
       MODEL_TIMEOUT_MS: ${MODEL_TIMEOUT_MS:-120000}
+      # Circuit breaker around the model (ADR 0007); scripts/chaos.sh shortens these in CI.
+      MODEL_CIRCUIT_FAILURES: ${MODEL_CIRCUIT_FAILURES:-5}
+      MODEL_CIRCUIT_RESET_MS: ${MODEL_CIRCUIT_RESET_MS:-30000}
     ports:
       - "127.0.0.1:8080:8080"
     volumes:

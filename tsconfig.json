@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["packages/**/*.ts", "apps/**/*.ts", "*.ts"],
+  "include": ["packages/**/*.ts", "apps/**/*.ts", "scripts/**/*.ts", "*.ts"],
   "exclude": ["**/node_modules", "**/dist", "**/.stryker-tmp"]
 }
