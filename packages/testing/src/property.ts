@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { expect } from 'vitest';
 
 export interface PropertySettings {
   readonly numRuns: number;
@@ -35,7 +36,8 @@ export function propertySettings(env: Env = process.env): PropertySettings {
 
 /** Asserts a property under the run's settings; a failure prints the seed and path to replay it. */
 export async function assertProperty<T>(property: fc.IRawProperty<T>): Promise<void> {
-  await fc.assert(property, propertySettings());
+  const details = await fc.check(property, propertySettings());
+  expect(details.failed, fc.defaultReportMessage(details)).toBe(false);
 }
 
 /**
@@ -47,5 +49,5 @@ export async function expectCounterexample<T>(property: fc.IRawProperty<T>): Pro
   const settings = propertySettings();
   const { seed: _seed, path: _path, ...rest } = settings;
   const details = await fc.check(property, { ...rest, numRuns: Math.max(rest.numRuns, 200) });
-  if (!details.failed) throw new Error(`expected a counterexample against a known-bad implementation, but ${details.numRuns} runs passed`);
+  expect(details.failed, `expected a counterexample against a known-bad implementation, but ${details.numRuns} runs passed`).toBe(true);
 }

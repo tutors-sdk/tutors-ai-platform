@@ -1,6 +1,8 @@
 {
-  "$comment": "Minimum mutation score per package. Recorded at phase 1; may rise, may not fall.",
+  "$comment": "Minimum mutation score per package. Recorded when each package joined the gate; may rise, may not fall (scripts/check-ratchets.ts).",
   "packages": {
-    "packages/core": 100
+    "packages/core": 100,
+    "packages/adapters/resilience": 100,
+    "packages/adapters/ollama": 80
   }
 }
