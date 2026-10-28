@@ -18,7 +18,7 @@
     "test:integration": "vitest run --project integration",
     "test:properties": "FC_NUM_RUNS=10000 vitest run --project unit --testTimeout=600000 property",
     "test:soak": "vitest run --project soak",
-    "mutation": "pnpm --workspace-concurrency=1 --filter @tutors-ai/core --filter @tutors-ai/adapter-resilience --filter @tutors-ai/adapter-ollama run mutation",
+    "mutation": "pnpm --workspace-concurrency=1 --filter @tutors-ai/core --filter @tutors-ai/adapter-resilience --filter @tutors-ai/adapter-ollama --filter @tutors-ai/adapter-mcp run mutation",
     "mutation:fixture": "cd scripts/mutation-fixture && stryker run && node ../check-mutation.mjs --fixture",
     "ratchets": "node scripts/check-ratchets.ts",
     "check": "pnpm typecheck && pnpm lint && pnpm lint:suite-health && pnpm lint:determinism && pnpm ears && pnpm test --project unit",
