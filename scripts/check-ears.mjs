@@ -62,6 +62,13 @@ for (const adapter of walk(join(root, 'packages/adapters'), (p) => p.endsWith('.
   if (spec) specs.set(adapter, spec);
 }
 
+// 1c. Core service specifications: services the use cases share (spec/services/), linted and
+// traced like ports.
+for (const service of walk(join(core, 'spec/services'), (p) => p.endsWith('.ears.md'))) {
+  const spec = parseSpec(service);
+  if (spec) specs.set(service, spec);
+}
+
 // 2. Form.
 const seen = new Map();
 for (const { path, meta, requirements } of specs.values()) {
@@ -100,10 +107,11 @@ for (const { path, meta, requirements } of specs.values()) {
   }
 }
 
-const portCount = [...specs.keys()].filter((p) => p.startsWith(core)).length;
-const adapterCount = specs.size - portCount;
+const serviceCount = [...specs.keys()].filter((p) => p.startsWith(join(core, 'spec/services'))).length;
+const portCount = [...specs.keys()].filter((p) => p.startsWith(core)).length - serviceCount;
+const adapterCount = specs.size - portCount - serviceCount;
 if (failures.length > 0) {
   console.error(`EARS gate failed (${failures.length}):\n  ${failures.join('\n  ')}`);
   process.exit(1);
 }
-console.log(`EARS gate passed: ${portCount} ports and ${adapterCount} adapter behaviours specified, ${seen.size} requirements, ${traced}/${total} implemented requirements traced to tests.`);
+console.log(`EARS gate passed: ${portCount} ports, ${serviceCount} core services and ${adapterCount} adapter behaviours specified, ${seen.size} requirements, ${traced}/${total} implemented requirements traced to tests.`);

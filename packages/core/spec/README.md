@@ -15,4 +15,7 @@ Every driving and driven port in `src/ports/` has a specification here before it
    least one test name (a `*.test.ts` file or a contract kit under `packages/testing/src/kits/`).
    `planned` specs are linted for form only.
 
+Services the use cases share but that are not ports, such as the ToolHarness, are specified in
+`spec/services/` and held to the same form and traceability rules.
+
 Requirement lines are written as `- **ID** text`, where `ID` starts with the spec's `id` prefix.

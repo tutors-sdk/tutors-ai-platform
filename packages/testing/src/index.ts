@@ -15,3 +15,7 @@ export * from './kits/policy-provider.ts';
 export * from './fakes/insight-store.ts';
 export * from './kits/insight-store.ts';
 export * from './property.ts';
+export * from './fakes/tool-audit.ts';
+export * from './fakes/tool-host.ts';
+export * from './kits/tool-audit.ts';
+export * from './kits/tool-host.ts';

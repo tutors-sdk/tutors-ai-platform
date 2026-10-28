@@ -1,4 +1,5 @@
 import type { AssistanceDepth, CapabilityLevelId, MemoryScope } from './capability.ts';
+import type { ToolPolicy } from './tools.ts';
 
 /**
  * The versioned rule set that bounds what the assistant may say and remember
@@ -17,6 +18,8 @@ export interface PedagogicalPolicy {
   readonly maxResponseChars: number;
   /** Upper bound on retrieved material passed to the model. */
   readonly maxMaterial: number;
+  /** The tools an exchange at this level may use; none when absent (docs/adr/0008). */
+  readonly tools?: ToolPolicy;
 }
 
 /** The bound applied to one exchange, derived from a policy and a learner context. */

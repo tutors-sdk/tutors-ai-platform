@@ -58,6 +58,8 @@ implementations beside it, and `expectCounterexample` fails if the property cann
 | `resilience/test/bulkhead.property.test.ts` | Admits, queues and refuses as the policy says, first come first served (RES-012 to RES-014) | LIFO queue, unbounded queue, a place lost when a queued call gives up |
 | `resilience/test/deadline.property.test.ts` | A call settles within its timeout and retries only unavailable attempts, for any latencies and outcomes (RES-009 to RES-011) | a retry that gives every attempt the full timeout |
 | `resilience/test/backoff.property.test.ts` | Every delay is a whole number between zero and a capped, non-decreasing ceiling | a backoff without a cap |
+| `core/test/tool-schema.property.test.ts` | The harness's argument validator accepts exactly what Ajv accepts, for any tool schema in the enforceable subset (HAR-010) | ignores `required`, ignores `additionalProperties`, ignores `enum`, treats `integer` as `number` |
+| `core/test/tool-harness.property.test.ts` | Outcomes, server calls, their timeouts and audit records match a model of the call, time and validation budgets for any sequence of calls, failures and delays (HAR-008 to HAR-013) | counts only calls that reached the server, ignores the time budget, calls before validating, audits only calls that reached the server |
 
 `FC_NUM_RUNS` (default 100), `FC_SEED` and `FC_PATH` fail closed: a malformed value stops the run.
 A failure prints the seed and path; replay it with
@@ -74,13 +76,20 @@ attempts, not from a run), an elapsed-time window of at most 1 s, and every resi
 How to write one, and what it has found, is in
 [its README](../packages/adapters/ollama/test/faults/README.md).
 
+The MCP adapter has a smaller catalogue in `packages/adapters/mcp/test/faults.test.ts`: a scripted
+HTTP server completes the handshake and then fails every listing and call one way (error statuses,
+a dropped socket, no answer, HTML, broken JSON, JSON-RPC errors, a result outside the schema), and
+each fault names the port error kind the harness must see. Its kit also runs against a real MCP
+server over Streamable HTTP in the same process.
+
 ## Mutation
 
 | Package | Floor | Why |
 | --- | --- | --- |
-| `packages/core` | 100% | The domain and use cases |
-| `packages/adapters/resilience` | 100% | Small, pure, and every branch is a resilience decision |
+| `packages/core` | 100% | The domain, use cases and the tool harness |
+| `packages/adapters/resilience` | 100% | Small, pure, and every branch is a resilience decision, for the model and for each tool server |
 | `packages/adapters/ollama` | 80% | Measured 82.8% when it joined; the prompt text accounts for most survivors |
+| `packages/adapters/mcp` | 95% | Measured 98.2% when it joined; the survivors are equivalent (an undefined cursor, closing a connection already dropped) |
 
 `pnpm mutation` runs Stryker in each package, one at a time; `node scripts/check-mutation.mjs`
 scores the reports against `mutation-baseline.json`. `pnpm mutation:fixture` runs first in CI: a

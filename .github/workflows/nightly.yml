@@ -89,6 +89,7 @@ jobs:
             packages/core/reports/mutation/
             packages/adapters/resilience/reports/mutation/
             packages/adapters/ollama/reports/mutation/
+            packages/adapters/mcp/reports/mutation/
 
   report:
     name: Keep the nightly issue up to date

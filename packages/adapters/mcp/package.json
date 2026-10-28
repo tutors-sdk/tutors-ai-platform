@@ -1,0 +1,23 @@
+{
+  "name": "@tutors-ai/adapter-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "description": "ToolHost over the Model Context Protocol: MCP tool servers reached over Streamable HTTP with the official SDK.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "mutation": "stryker run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@tutors-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@tutors-ai/testing": "workspace:*"
+  }
+}

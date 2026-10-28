@@ -8,6 +8,9 @@ export * from './domain/material.ts';
 export * from './domain/memory.ts';
 export * from './domain/policy.ts';
 export * from './domain/retention.ts';
+export type * from './domain/tool-audit.ts';
+export * from './domain/tool-schema.ts';
+export * from './domain/tools.ts';
 
 export type * from './ports/driven/clock.ts';
 export type * from './ports/driven/course-content.ts';
@@ -21,6 +24,8 @@ export type * from './ports/driven/learner-memory.ts';
 export type * from './ports/driven/policy-provider.ts';
 export type * from './ports/driven/sharing-candidates.ts';
 export * from './ports/driven/telemetry.ts';
+export type * from './ports/driven/tool-audit.ts';
+export type * from './ports/driven/tool-host.ts';
 
 export type * from './ports/driving/assist-student.ts';
 export * from './ports/driving/evaluate-capability.ts';
@@ -38,4 +43,5 @@ export * from './usecases/apply-retention.ts';
 export * from './usecases/evaluate-capability.ts';
 export * from './usecases/explain-lab-insights.ts';
 export * from './usecases/recommend-interventions.ts';
+export * from './usecases/tool-harness.ts';
 export * from './usecases/traced.ts';
