@@ -15,6 +15,14 @@ import {
   StaticPolicyProvider,
   FIRST_YEAR,
   FINAL_YEAR,
+  FakeToolHost,
+  InMemoryToolAudit,
+  KIT_CHANGED_ECHO_DESCRIPTION,
+  KIT_SERVER,
+  KIT_TOOLS,
+  toolAuditContract,
+  toolHostContract,
+  type FakeTool,
 } from '../src/index.ts';
 
 // The fakes are adapters too: they pass the same kits as production adapters,
@@ -53,3 +61,29 @@ policyProviderContract('StaticPolicyProvider', {
 });
 
 insightStoreContract('InMemoryInsightStore', { store: () => new InMemoryInsightStore() });
+
+const SLOW_MS = 200;
+
+function kitTools(echoDescription: string = KIT_TOOLS.echo.description): FakeTool[] {
+  const text = (args: Readonly<Record<string, unknown>>) => String(args['text']);
+  return [
+    { ...KIT_TOOLS.echo, description: echoDescription, run: (args) => ({ text: text(args) }) },
+    { ...KIT_TOOLS.fail, run: (args) => ({ text: `failed: ${text(args)}`, isError: true }) },
+    { ...KIT_TOOLS.mixed, run: () => ({ text: 'first\nsecond', omittedParts: 1 }) },
+    { ...KIT_TOOLS.slow, latencyMs: SLOW_MS, run: () => ({ text: 'late' }) },
+    { ...KIT_TOOLS.write, run: () => ({ text: 'written' }) },
+  ];
+}
+
+toolHostContract('FakeToolHost', {
+  working: () => new FakeToolHost({ [KIT_SERVER]: kitTools() }),
+  changed: () => new FakeToolHost({ [KIT_SERVER]: kitTools(KIT_CHANGED_ECHO_DESCRIPTION) }),
+  unreachable: () => {
+    const host = new FakeToolHost({ [KIT_SERVER]: kitTools() });
+    host.down.add(KIT_SERVER);
+    return host;
+  },
+  slowerThanMs: SLOW_MS,
+});
+
+toolAuditContract('InMemoryToolAudit', { audit: () => new InMemoryToolAudit() });
