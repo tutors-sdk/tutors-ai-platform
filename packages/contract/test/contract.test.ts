@@ -197,4 +197,30 @@ describe('ContractPolicyProvider', () => {
     const p = { id: 'a', version: '0.1.0', level: 'first-year', maxDepth: 'hint', memory: { kind: 'session', sharing: 'private' }, maxResponseChars: 1, maxMaterial: 1 };
     expect(() => new ContractPolicyProvider([p, { ...p, id: 'b' }])).toThrow(/more than one default/);
   });
+
+  const withTools = (grants: unknown[]) => ({
+    id: 'fy',
+    version: '0.1.0',
+    level: 'first-year',
+    maxDepth: 'hint',
+    memory: { kind: 'session', sharing: 'private' },
+    maxResponseChars: 100,
+    maxMaterial: 2,
+    tools: { grants, maxCalls: 3, callTimeoutMs: 2_000, exchangeBudgetMs: 8_000, maxArgumentChars: 1_000, maxResultChars: 4_000 },
+  });
+  const grant = { server: 'docs', tool: 'search', digest: `sha256:${'0'.repeat(64)}` };
+
+  it('HAR-001 carries a policy’s tool grants and limits through, and none when the policy has none', async () => {
+    const provider = new ContractPolicyProvider([withTools([grant])]);
+    expect((await provider.policyFor('c1', 'first-year'))?.tools).toEqual(withTools([grant]).tools);
+    expect(await new ContractPolicyProvider().policyFor('c1', 'first-year')).not.toHaveProperty('tools');
+  });
+
+  it('HAR-004 rejects a grant without a full SHA-256 digest, a duplicate grant, or an unknown field at load', () => {
+    expect(() => new ContractPolicyProvider([withTools([{ ...grant, digest: 'sha256:abc' }])])).toThrow();
+    expect(() => new ContractPolicyProvider([withTools([{ ...grant, digest: grant.digest.toUpperCase() }])])).toThrow();
+    expect(() => new ContractPolicyProvider([withTools([grant, { ...grant }])])).toThrow(/only once/);
+    expect(() => new ContractPolicyProvider([withTools([{ ...grant, readOnly: true }])])).toThrow();
+    expect(() => new ContractPolicyProvider([{ ...withTools([]), tools: { ...withTools([]).tools, maxCalls: 0 } }])).toThrow();
+  });
 });

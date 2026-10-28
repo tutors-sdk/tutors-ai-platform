@@ -69,6 +69,13 @@ function packagesOf(layer) {
     .filter((p) => statSync(p).isDirectory());
 }
 
+/**
+ * Packages allowed to speak MCP. Tools reach the platform only through the ToolHarness and the
+ * MCP ToolHost (docs/adr/0008); MemoryHub's adapter speaks MCP for memory (docs/adr/0006).
+ */
+const MCP_CLIENTS = ['packages/adapters/mcp', 'packages/adapters/memoryhub'];
+const isMcp = (s) => /^@modelcontextprotocol\//.test(s);
+
 const failures = [];
 let files = 0;
 for (const layer of LAYERS) {
@@ -88,6 +95,9 @@ for (const layer of LAYERS) {
         }
         const reason = layer.forbid(spec);
         if (reason) failures.push(`${where}: "${spec}" is forbidden (${reason})`);
+        else if (isMcp(spec) && !MCP_CLIENTS.includes(relative(root, pkg))) {
+          failures.push(`${where}: "${spec}" is forbidden (only ${MCP_CLIENTS.join(' and ')} may speak MCP; reach tools through the ToolHarness)`);
+        }
       }
     }
   }

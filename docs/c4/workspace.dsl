@@ -20,6 +20,9 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
                 contentAdapter = component "Course export adapter" "CourseContent port." "packages/adapters/course-content"
                 postgresAdapter = component "PostgreSQL adapter" "EvidenceStore and LearnerMemory ports." "packages/adapters/postgres"
                 keycloakAdapter = component "Keycloak adapter" "Identity port." "packages/adapters/keycloak"
+                toolHarness = component "Tool harness" "ToolHarness: grants, pinned definitions, argument checks, budgets and audit for every tool call (ADR 0008)." "packages/core"
+                toolResilience = component "Tool resilience decorator" "ToolHost port: circuit breaker and bulkhead per tool server (ADR 0008)." "packages/adapters/resilience"
+                mcpAdapter = component "MCP adapter" "ToolHost port over MCP Streamable HTTP. No tools wired yet." "packages/adapters/mcp"
                 memoryHubAdapter = component "MemoryHub adapter" "LearnerMemory and GovernedMemoryStore ports. Planned (ADR 0006)." "packages/adapters/memoryhub"
                 otelAdapter = component "OpenTelemetry adapter" "Telemetry port." "packages/adapters/otel"
             }
@@ -31,6 +34,8 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         }
 
         memoryHub = softwareSystem "MemoryHub" "Kubernetes-native agent memory over MCP: scopes, semantic search, provenance, versioning, promotion. Planned (ADR 0006)." "External"
+
+        toolServers = softwareSystem "MCP tool servers" "Read-only tools a policy grants to the assistant, pinned by definition digest. None yet (ADR 0008)." "External"
 
         courseExport = softwareSystem "Course export" "Course material exported from Tutors." "External"
 
@@ -44,6 +49,7 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         insightsWorker -> postgres "Reads evidence, writes insights"
         inferenceApi -> keycloak "Validates tokens with"
         inferenceApi -> memoryHub "Reads and writes governed memory" "MCP, in-cluster only"
+        inferenceApi -> toolServers "Lists and calls granted tools" "MCP over Streamable HTTP"
         inferenceApi -> otel "Emits to"
 
         contractAdapter -> core "Drives"
@@ -55,6 +61,10 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
         core -> keycloakAdapter "Identity"
         core -> memoryHubAdapter "LearnerMemory, GovernedMemoryStore"
         core -> otelAdapter "Telemetry"
+        core -> toolHarness "Opens a tool session per exchange"
+        toolHarness -> toolResilience "ToolHost"
+        toolResilience -> mcpAdapter "ToolHost, while the server's circuit is closed"
+        mcpAdapter -> toolServers "MCP"
         ollamaAdapter -> ollama "HTTP"
         contentAdapter -> courseExport "Reads"
         postgresAdapter -> postgres "SQL"

@@ -23,7 +23,7 @@ export class ContractPolicyProvider implements PolicyProvider {
     const forLevel = this.#policies.filter((p) => p.level === level);
     const chosen = forLevel.find((p) => p.courses?.includes(courseId)) ?? forLevel.find((p) => p.courses === undefined);
     if (chosen === undefined) return null;
-    const { courses: _courses, ...policy } = chosen;
-    return policy;
+    const { courses: _courses, tools, ...policy } = chosen;
+    return tools === undefined ? policy : { ...policy, tools };
   }
 }

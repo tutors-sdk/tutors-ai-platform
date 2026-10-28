@@ -31,6 +31,7 @@ and the infrastructure is code. It has not yet run on a real cluster.
 | Golden sets, ten cases per level | Need a lecturer |
 | Production model pin (Qwen 3.8 27B, ADR 0005) | Needs a first pull in staging (`infra/openshift/pin-model.sh`) |
 | Identity (Keycloak) and the release gate | Deferred (ADR 0005) |
+| Tool harness for MCP capabilities (ADR 0008, proposed) | `ToolHarness`, `ToolHost` and `ToolAudit` ports, the MCP adapter and per-server resilience; no tool granted or wired yet |
 | Governed memory with MemoryHub (final-year project) | Ports and planned specs ready (ADR 0006, accepted); guide in `docs/projects/governed-memory.md` |
 
 ## Layout
@@ -45,6 +46,8 @@ packages/
   contract/              @tutors/ai-contract 0.1, policies, golden sets, the contract adapter
   adapters/
     ollama/              LanguageModel: prompts, structured output, streaming, digest pinning
+    resilience/          circuit breaker, retry and bulkhead around the model and each tool server
+    mcp/                 ToolHost over MCP Streamable HTTP, the only package that speaks MCP to tools
     postgres/            EvidenceStore and LearnerMemory, scope and retention enforced in SQL
     course-content/      CourseContent over a Tutors course export
     otel/                Telemetry over OpenTelemetry: spans, per-level metrics, nothing per learner
@@ -75,7 +78,7 @@ up staging.
 | --- | --- | --- |
 | `core` | nothing outside itself | any package, Node built-in, adapter, app or infra |
 | `contract` | `core` types, its own libraries | adapters, apps, testing |
-| `adapters/*` | `core` ports, its own client library | other adapters, contract, apps |
+| `adapters/*` | `core` ports, its own client library | other adapters, contract, apps; the MCP SDK outside `adapters/mcp` and `adapters/memoryhub` |
 | `apps/*` | `core`, `contract`, any adapter | `infra` |
 | `evaluation` | `core`, `testing`, `contract` | adapters directly (it goes through the composition root) |
 | `testing` | `core` | adapters (fakes are written against ports) |

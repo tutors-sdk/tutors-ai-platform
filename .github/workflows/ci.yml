@@ -58,7 +58,7 @@ jobs:
           SOAK_REQUESTS: 10000
 
   mutation:
-    name: Mutation score (core, resilience, Ollama)
+    name: Mutation score (core, resilience, Ollama, MCP)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +80,7 @@ jobs:
             packages/core/reports/mutation/
             packages/adapters/resilience/reports/mutation/
             packages/adapters/ollama/reports/mutation/
+            packages/adapters/mcp/reports/mutation/
 
   integration:
     name: Adapter integration (Ollama CPU model, PostgreSQL)

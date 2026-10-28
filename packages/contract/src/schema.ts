@@ -157,6 +157,28 @@ export const InsightsResponse = z
   })
   .strict();
 
+/** One tool a policy grants, pinned to the SHA-256 of the definition that was reviewed (docs/adr/0008). */
+export const ToolGrant = z
+  .object({ server: id, tool: id, digest: z.string().regex(/^sha256:[0-9a-f]{64}$/) })
+  .strict();
+
+const positive = z.number().int().positive();
+
+/** What an exchange may do with tools. A policy without one grants no tools. */
+export const ToolPolicy = z
+  .object({
+    grants: z.array(ToolGrant).refine(
+      (grants) => new Set(grants.map((g) => `${g.server}/${g.tool}`)).size === grants.length,
+      'a tool may be granted only once per policy',
+    ),
+    maxCalls: positive,
+    callTimeoutMs: positive,
+    exchangeBudgetMs: positive,
+    maxArgumentChars: positive,
+    maxResultChars: positive,
+  })
+  .strict();
+
 /** A pedagogical policy as published in the contract package. */
 export const Policy = z
   .object({
@@ -167,6 +189,7 @@ export const Policy = z
     memory: MemoryScope,
     maxResponseChars: z.number().int().positive(),
     maxMaterial: z.number().int().positive(),
+    tools: ToolPolicy.optional(),
     /** Optional course ids this policy overrides the level default for. */
     courses: z.array(id).optional(),
   })

@@ -37,6 +37,22 @@ compose stack. What each tier owns and the signal that proves it can fail is in
    It emits one span and traces every driven-port call ([docs/observability.md](docs/observability.md)).
 6. **Flip the spec to `implemented`.** `pnpm ears` now fails until every requirement is traced.
 
+## Adding a tool
+
+Tools reach a model only through the `ToolHarness` ([ADR 0008](docs/adr/0008-mcp-tool-harness.md)).
+Adding one is a policy change, not a code change:
+
+1. The tool must be read-only and its input schema must stay within the subset the harness
+   enforces (`packages/core/src/domain/tool-schema.ts`); otherwise it is withheld.
+2. List the server's tools through `McpToolHost.listTools` and take the tool's `digest`.
+3. Add a grant (`server`, `tool`, `digest`) and the exchange limits to the `tools` section of the
+   policy for each capability level that should have it, in `packages/contract/src/policies/`.
+4. Add golden cases for it, including a tool result carrying an instruction the answer must not
+   follow.
+
+When a server changes the tool, it is withheld as `definition-changed` until the grant's digest is
+reviewed and updated.
+
 ## Adding an adapter
 
 1. `packages/adapters/<name>/` with `package.json` named `@tutors-ai/adapter-<name>`, depending on

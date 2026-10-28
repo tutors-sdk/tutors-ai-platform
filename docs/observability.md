@@ -28,6 +28,13 @@ write.
   from `@tutors-ai/core`; it ends the span with `error` and records `port.error` (the
   `PortError` kind) when the call fails (`AS-018`).
 - The clock is not traced.
+- **Tools** ([ADR 0008](adr/0008-mcp-tool-harness.md)): `ToolHarness.open` and one
+  `ToolHarness.call` per call attempt are children of the exchange's span. The open span carries
+  `tools.offered` and `tools.excluded` (`server/tool:reason`, so a `definition-changed` tool is
+  visible); a call span carries `tool.outcome` and `tool.refusal` or `port.error`, and
+  `tool.server` and `tool.name` only for a granted tool, since a name the model made up is its
+  text. `ToolHost.listTools`, `ToolHost.callTool` and `ToolAudit.append` are their
+  children. Never arguments or results.
 - Adapters do not create spans or take a `Telemetry`. They raise `PortError` with the right kind
   (`unavailable`, `timeout`, `invalid-response`, `rejected`), and the core's span records it. That
   keeps every adapter observable the same way, MemoryHub included, with no code of its own.
@@ -38,7 +45,8 @@ time, and a failed one shows which port failed.
 ## Attributes
 
 Allowed: `learner.level`, `course.id`, `policy.id`, `policy.version`, `model.digest`,
-`model.tokens.in`, `model.tokens.out`, `port.error`, and `<capability>.<field>` outcome keys such as
+`model.tokens.in`, `model.tokens.out`, `port.error`, `tools.offered`, `tools.excluded`, `tool.server`
+and `tool.name` (granted tools only), and `<capability>.<field>` outcome keys such as
 `assist.outcome`, `assist.depth`, `assist.refusal`.
 
 Never: learner, session or programme ids, cohort ids smaller than a course, and any text a learner

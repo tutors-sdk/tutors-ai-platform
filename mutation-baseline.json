@@ -3,6 +3,7 @@
   "packages": {
     "packages/core": 100,
     "packages/adapters/resilience": 100,
-    "packages/adapters/ollama": 80
+    "packages/adapters/ollama": 80,
+    "packages/adapters/mcp": 95
   }
 }
