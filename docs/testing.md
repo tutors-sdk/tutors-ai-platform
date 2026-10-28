@@ -29,7 +29,7 @@ workspace, Vitest and a hexagonal design. Resilience behaviour itself is in
 | Mutation | Stryker per package | `pnpm mutation`, `pnpm mutation:fixture` | `mutation`; nightly | The known-weak fixture in `scripts/mutation-fixture/` must keep survivors and lose some |
 | Integration | `**/*.integration.test.ts` | `pnpm test:integration` | `integration` (Ollama CPU model, PostgreSQL) | Real services; skips only when their URL is unset |
 | Heap soak | `apps/inference-api/test/heap.soak.test.ts` | `pnpm test:soak` | `soak` (10,000 requests); nightly (200,000) | A planted 2 KiB-per-request leak must be flagged |
-| End to end and chaos | `compose.yaml`, `scripts/chaos.sh` | `scripts/dev-up.sh && scripts/chaos.sh` | `compose` | Asserts fail-fast, recovery and survival against a stopped Ollama and a restarted PostgreSQL |
+| End to end and chaos | `compose.yaml`, `scripts/chaos.sh`, `scripts/tools-check.sh` | `scripts/dev-up.sh && scripts/tools-check.sh && scripts/chaos.sh` | `compose` | Asserts fail-fast, recovery and survival against a stopped Ollama and a restarted PostgreSQL, and the tool path against a stand-in MCP server, stopped and back |
 | Order dependence | the unit run, shuffled | `pnpm vitest run --project unit --sequence.shuffle --sequence.seed=<n>` | nightly, three seeds, no retries | A test that depends on another's state fails under some order |
 
 `ci-success` fans in every job in `ci.yml`; it is the one check branch protection needs.
@@ -109,6 +109,13 @@ timer outlives the server. The same run with a planted leak must be flagged.
 back at once as `model-unavailable` refusals and the circuit must open; with Ollama back, a probe
 must close it; with PostgreSQL restarted, the API process must survive, `/readyz` must go 503 and
 then 200, and evidence must be recorded again.
+
+`scripts/tools-check.sh` runs the tool path the same way: from inside the API's container, the
+stand-in server's tools are listed over MCP with its token and one is called through the harness,
+with the record checked in PostgreSQL; a tool that is not read-only must be excluded; with the
+server stopped, the call must fail as `unavailable` within its timeout while the API stays ready
+and unrestarted, and calls must answer once it is back. The same path runs in-process against
+PostgreSQL in `apps/inference-api/test/tools.integration.test.ts`.
 
 ## Nightly
 

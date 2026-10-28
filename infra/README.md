@@ -76,10 +76,15 @@ The inference API is reachable only from inside its namespace until authenticati
 - **Locked-down containers.** Non-root, no privilege escalation, all capabilities dropped,
   read-only root filesystem, resource limits, and no `latest` images.
 - **Named weights.** Production serves only a model named by a real sha256 digest (ADR 0003).
-- Egress is not restricted yet: Ollama pulls weights from its registry, and nodes pull images
-  through the NAT gateway.
+- **The API's egress is limited.** It reaches tool servers (ADR 0008), so it may reach only DNS,
+  Ollama, PostgreSQL, the collector and pods labelled `tutors-ai/tool-server: "true"`. A tool
+  server outside the cluster needs an overlay rule naming its address range; nothing may open the
+  API's egress to everywhere. Tool servers are listed in the `tool-servers` ConfigMap and their
+  tokens kept in the `tool-server-tokens` Secret, applied by hand like `postgres-app`.
+- Other egress is not restricted yet: Ollama pulls weights from its registry, and nodes pull
+  images through the NAT gateway.
 
-`check.sh` enforces the exposure, container, Ollama network and production pin rules on every
+`check.sh` enforces the exposure, container, Ollama network, API egress, tool token and production pin rules on every
 pull request; the policies are in `ci/policy/`, each with tests.
 
 ## Running the check locally

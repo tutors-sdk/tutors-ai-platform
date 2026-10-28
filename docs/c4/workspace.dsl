@@ -18,11 +18,11 @@ workspace "Tutors AI Platform" "Contextual assistance, learning analytics and co
                 resilienceAdapter = component "Resilience decorator" "LanguageModel port: circuit breaker, bounded retry and bulkhead around the model adapter (ADR 0007)." "packages/adapters/resilience"
                 ollamaAdapter = component "Ollama adapter" "LanguageModel port." "packages/adapters/ollama"
                 contentAdapter = component "Course export adapter" "CourseContent port." "packages/adapters/course-content"
-                postgresAdapter = component "PostgreSQL adapter" "EvidenceStore and LearnerMemory ports." "packages/adapters/postgres"
+                postgresAdapter = component "PostgreSQL adapter" "EvidenceStore, LearnerMemory and ToolAudit ports." "packages/adapters/postgres"
                 keycloakAdapter = component "Keycloak adapter" "Identity port." "packages/adapters/keycloak"
                 toolHarness = component "Tool harness" "ToolHarness: grants, pinned definitions, argument checks, budgets and audit for every tool call (ADR 0008)." "packages/core"
                 toolResilience = component "Tool resilience decorator" "ToolHost port: circuit breaker and bulkhead per tool server (ADR 0008)." "packages/adapters/resilience"
-                mcpAdapter = component "MCP adapter" "ToolHost port over MCP Streamable HTTP. No tools wired yet." "packages/adapters/mcp"
+                mcpAdapter = component "MCP adapter" "ToolHost port over MCP Streamable HTTP. Composed in the API; no tool granted yet." "packages/adapters/mcp"
                 memoryHubAdapter = component "MemoryHub adapter" "LearnerMemory and GovernedMemoryStore ports. Planned (ADR 0006)." "packages/adapters/memoryhub"
                 otelAdapter = component "OpenTelemetry adapter" "Telemetry port." "packages/adapters/otel"
             }

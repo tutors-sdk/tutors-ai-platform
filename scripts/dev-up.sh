@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Starts the whole platform locally (compose.yaml): PostgreSQL, Ollama, the collector and the
-# inference API. Pulls the model, pins its digest in .env (the API serves only a model it can
-# name by digest), then builds and starts the API and waits until it is ready.
+# Starts the whole platform locally (compose.yaml): PostgreSQL, Ollama, the collector, the stand-in
+# tool server and the inference API. Pulls the model, pins its digest in .env (the API serves only
+# a model it can name by digest), then builds and starts the API and waits until it is ready.
 #
 #   scripts/dev-up.sh                    # qwen2.5:0.5b, small enough for a laptop CPU
 #   OLLAMA_MODEL=qwen3.8:27b scripts/dev-up.sh
@@ -40,7 +40,7 @@ grep -v '^OLLAMA_MODEL=\|^OLLAMA_DIGEST=' .env > .env.tmp || true
 printf 'OLLAMA_MODEL=%s\nOLLAMA_DIGEST=%s\n' "$model" "$digest" >> .env.tmp
 mv .env.tmp .env
 
-$COMPOSE up -d --build inference-api
+$COMPOSE up -d --build tool-stub inference-api
 for _ in $(seq 1 60); do
   if curl -sf http://127.0.0.1:8080/readyz >/dev/null; then
     echo "inference-api is ready on http://127.0.0.1:8080"

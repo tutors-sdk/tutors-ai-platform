@@ -73,6 +73,40 @@ const MIGRATIONS: readonly { readonly id: string; readonly up: (s: string) => st
       create index insight_runs_course_idx on ${s}.insight_runs (course_id, produced_at desc, id desc);
     `,
   },
+  {
+    id: '004-tool-calls',
+    up: (s) => `
+      -- The ToolAudit (docs/adr/0008): one row per tool call attempt, never arguments or results.
+      create table ${s}.tool_calls (
+        sequence        bigserial primary key,
+        learner_id      text not null,
+        session_id      text not null,
+        course_id       text not null,
+        policy_id       text not null,
+        policy_version  text not null,
+        server          text not null,
+        tool            text not null,
+        digest          text check (digest ~ '^sha256:[0-9a-f]{64}$'),
+        outcome         text not null check (outcome in ('refused', 'failed', 'result')),
+        reason          text,
+        is_error        boolean,
+        argument_chars  integer not null check (argument_chars >= 0),
+        result_chars    integer not null check (result_chars >= 0),
+        elapsed_ms      integer not null check (elapsed_ms >= 0),
+        called_at       timestamptz not null,
+        source          text not null
+      );
+      create index tool_calls_course_idx on ${s}.tool_calls (course_id, sequence);
+      create index tool_calls_learner_idx on ${s}.tool_calls (learner_id);
+
+      create function ${s}.tool_calls_append_only() returns trigger language plpgsql as $$
+      begin
+        raise exception 'the tool audit is append-only';
+      end $$;
+      create trigger tool_calls_append_only before update on ${s}.tool_calls
+        for each row execute function ${s}.tool_calls_append_only();
+    `,
+  },
 ];
 
 /** Applies any migrations not yet recorded in `<schema>.schema_migrations`. Safe to run on every start. */

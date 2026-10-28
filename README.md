@@ -31,7 +31,7 @@ and the infrastructure is code. It has not yet run on a real cluster.
 | Golden sets, ten cases per level | Need a lecturer |
 | Production model pin (Qwen 3.8 27B, ADR 0005) | Needs a first pull in staging (`infra/openshift/pin-model.sh`) |
 | Identity (Keycloak) and the release gate | Deferred (ADR 0005) |
-| Tool harness for MCP capabilities (ADR 0008, proposed) | `ToolHarness`, `ToolHost` and `ToolAudit` ports, the MCP adapter and per-server resilience; no tool granted or wired yet |
+| Tool harness for MCP capabilities (ADR 0008, accepted) | Harness, MCP adapter, per-server resilience, PostgreSQL audit, server config and egress policy, all composed in the API and checked end to end against a stand-in server in CI; no tool granted yet, and `AssistStudent` does not call tools until the first one is |
 | Governed memory with MemoryHub (final-year project) | Ports and planned specs ready (ADR 0006, accepted); guide in `docs/projects/governed-memory.md` |
 
 ## Layout
@@ -48,7 +48,7 @@ packages/
     ollama/              LanguageModel: prompts, structured output, streaming, digest pinning
     resilience/          circuit breaker, retry and bulkhead around the model and each tool server
     mcp/                 ToolHost over MCP Streamable HTTP, the only package that speaks MCP to tools
-    postgres/            EvidenceStore and LearnerMemory, scope and retention enforced in SQL
+    postgres/            EvidenceStore, LearnerMemory and ToolAudit, scope, retention and append-only enforced in SQL
     course-content/      CourseContent over a Tutors course export
     otel/                Telemetry over OpenTelemetry: spans, per-level metrics, nothing per learner
     system/              the system Clock
@@ -117,7 +117,7 @@ pnpm test:integration
 ### In containers
 
 `compose.yaml` runs the whole platform locally: PostgreSQL, Ollama, the OpenTelemetry collector,
-the inference API and (on demand) the insights worker, each built from its Containerfile and
+a stand-in MCP tool server (`apps/tool-stub`), the inference API and (on demand) the insights worker, each built from its Containerfile and
 locked down as the cluster runs it. Course content is the synthetic fixtures. Works with
 `docker compose` or `podman compose` (set `COMPOSE="podman compose"` to choose).
 
@@ -125,6 +125,8 @@ locked down as the cluster runs it. Course content is the synthetic fixtures. Wo
 scripts/dev-up.sh                              # pulls the model, pins its digest in .env, starts the API on :8080
 docker compose run --rm insights-worker        # one insights run, as the nightly CronJob does it
 docker compose logs -f otel-collector          # the traces and metrics the API exports
+docker compose exec inference-api node /opt/app/tools.mjs list stub   # a server's tools, with the grant that pins each
+scripts/tools-check.sh                         # the tool path end to end, and a tool server stopped
 docker compose --profile jobs down -v          # stop and delete the local data
 ```
 

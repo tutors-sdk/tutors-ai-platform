@@ -54,6 +54,17 @@ spec:
               value: http://otel-collector:4318
             - name: EVIDENCE_SOURCE
               value: inference-api
+            - name: MCP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: tool-servers
+                  key: MCP_SERVERS
+          # Tool-server tokens (MCP_TOKEN_*), if any. Optional, so the API starts without tools;
+          # variables named under env above take precedence over anything in this Secret.
+          envFrom:
+            - secretRef:
+                name: tool-server-tokens
+                optional: true
           livenessProbe:
             httpGet:
               path: /healthz

@@ -202,6 +202,10 @@ jobs:
           node -e 'const b = JSON.parse(require("fs").readFileSync("assist.json", "utf8")); if (!["answered", "refused"].includes(b.kind)) process.exit(1)'
       - name: Run the insights worker once
         run: docker compose run --rm insights-worker
+      # The tool path (ADR 0008): the stand-in server's tools listed and called through the harness,
+      # audited in PostgreSQL; then the server stopped and brought back while the API stays up.
+      - name: Tools end to end (scripts/tools-check.sh)
+        run: scripts/tools-check.sh
       - name: The collector received the API's spans
         run: |
           for _ in $(seq 1 15); do

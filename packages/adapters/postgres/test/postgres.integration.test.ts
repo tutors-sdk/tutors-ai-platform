@@ -1,7 +1,7 @@
-import { anEvidence, evidenceStoreContract, FixedClock, insightStoreContract, learnerMemoryContract } from '@tutors-ai/testing';
+import { aToolCallRecord, anEvidence, evidenceStoreContract, FixedClock, insightStoreContract, learnerMemoryContract, toolAuditContract } from '@tutors-ai/testing';
 import pg from 'pg';
 import { afterAll, describe, expect, it } from 'vitest';
-import { migrate, PostgresEvidenceStore, PostgresInsightStore, PostgresLearnerMemory } from '../src/index.ts';
+import { migrate, PostgresEvidenceStore, PostgresInsightStore, PostgresLearnerMemory, PostgresToolAudit } from '../src/index.ts';
 
 // Runs both kits against a real PostgreSQL. CI starts one; locally:
 //   PG_URL=postgres://postgres@localhost:5432/postgres pnpm test:integration
@@ -34,6 +34,9 @@ if (pool !== undefined) {
   insightStoreContract('PostgresInsightStore', {
     store: async () => new PostgresInsightStore(pool, await freshSchema()),
   });
+  toolAuditContract('PostgresToolAudit', {
+    audit: async () => new PostgresToolAudit(pool, await freshSchema()),
+  });
 }
 
 describe.skipIf(pool === undefined)('PostgreSQL specifics', () => {
@@ -42,6 +45,18 @@ describe.skipIf(pool === undefined)('PostgreSQL specifics', () => {
     const store = new PostgresEvidenceStore(pool as pg.Pool, new FixedClock(), schema);
     await store.append(anEvidence());
     await expect((pool as pg.Pool).query(`update "${schema}".evidence set confidence = 0`)).rejects.toThrow('append-only');
+  });
+
+  it('refuses to change the tool audit, even through SQL', async () => {
+    const schema = await freshSchema();
+    await new PostgresToolAudit(pool as pg.Pool, schema).append(aToolCallRecord());
+    await expect((pool as pg.Pool).query(`update "${schema}".tool_calls set outcome = 'refused'`)).rejects.toThrow('append-only');
+  });
+
+  it('enforces the tool audit vocabulary in the table as well as in the core', async () => {
+    const audit = new PostgresToolAudit(pool as pg.Pool, await freshSchema());
+    await expect(audit.append(aToolCallRecord({ digest: 'sha256:short' }))).rejects.toThrow();
+    await expect(audit.append(aToolCallRecord({ argumentChars: -1 }))).rejects.toThrow();
   });
 
   it('applies each migration once', async () => {

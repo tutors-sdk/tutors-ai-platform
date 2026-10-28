@@ -1,0 +1,14 @@
+# MCP tool servers the inference API may reach (ADR 0008), by the name policy grants use for them.
+# Empty here: an overlay lists servers once a tool is reviewed, e.g.
+#   MCP_SERVERS: '{"glossary": "http://glossary-tools:8080/mcp"}'
+# Each server's bearer token, if it needs one, goes in the Secret tool-server-tokens under
+# MCP_TOKEN_<NAME> (the name in capitals, dashes as underscores), applied by hand from the
+# overlay's secret.example.yaml like postgres-app. The API refuses to start on a token that names
+# no listed server, and on credentials in a URL. Listing a server grants nothing: only a policy
+# grant, pinned to the tool's digest, offers a tool to a model.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tool-servers
+data:
+  MCP_SERVERS: "{}"

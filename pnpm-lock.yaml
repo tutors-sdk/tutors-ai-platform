@@ -44,6 +44,9 @@ importers:
       '@tutors-ai/adapter-course-content':
         specifier: workspace:*
         version: link:../../packages/adapters/course-content
+      '@tutors-ai/adapter-mcp':
+        specifier: workspace:*
+        version: link:../../packages/adapters/mcp
       '@tutors-ai/adapter-ollama':
         specifier: workspace:*
         version: link:../../packages/adapters/ollama
@@ -69,6 +72,9 @@ importers:
         specifier: ^8.23.1
         version: 8.23.1
     devDependencies:
+      '@tutors-ai/app-tool-stub':
+        specifier: workspace:*
+        version: link:../tool-stub
       '@tutors-ai/testing':
         specifier: workspace:*
         version: link:../../packages/testing
@@ -106,6 +112,25 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
+  apps/tool-stub:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.32.2
+        version: 1.32.2(zod@4.6.7)
+    devDependencies:
+      '@tutors-ai/adapter-mcp':
+        specifier: workspace:*
+        version: link:../../packages/adapters/mcp
+      '@tutors-ai/adapter-system':
+        specifier: workspace:*
+        version: link:../../packages/adapters/system
+      '@tutors-ai/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2

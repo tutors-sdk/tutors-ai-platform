@@ -6,11 +6,12 @@
   "type": "module",
   "description": "Composition root for the request path: AssistStudent, RecordEvidence and ApplyRetention over HTTP.",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "build": "esbuild main=src/main.ts tools=src/tools-cli.ts --bundle --platform=node --target=node22 --format=esm --outdir=dist --out-extension:.js=.mjs --external:pg-native --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
     "start": "node dist/main.mjs"
   },
   "dependencies": {
     "@tutors-ai/adapter-course-content": "workspace:*",
+    "@tutors-ai/adapter-mcp": "workspace:*",
     "@tutors-ai/adapter-ollama": "workspace:*",
     "@tutors-ai/adapter-otel": "workspace:*",
     "@tutors-ai/adapter-postgres": "workspace:*",
@@ -21,6 +22,7 @@
     "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@tutors-ai/app-tool-stub": "workspace:*",
     "@tutors-ai/testing": "workspace:*",
     "@types/pg": "^8.23.1",
     "esbuild": "^0.28.2"

@@ -1,0 +1,24 @@
+{
+  "name": "@tutors-ai/app-tool-stub",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "description": "A stand-in MCP tool server for compose and CI: proves the tool path end to end. Never deployed, never offered to learners.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist/main.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2"
+  },
+  "devDependencies": {
+    "@tutors-ai/adapter-mcp": "workspace:*",
+    "@tutors-ai/adapter-system": "workspace:*",
+    "@tutors-ai/core": "workspace:*",
+    "esbuild": "^0.28.2"
+  }
+}

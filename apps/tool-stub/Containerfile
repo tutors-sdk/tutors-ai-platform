@@ -1,0 +1,26 @@
+# A stand-in MCP tool server for compose and CI (apps/tool-stub). Never deployed: it exists so the
+# tool path (network, token, protocol, harness, audit) is exercised before a real tool is granted.
+#   podman build -f apps/tool-stub/Containerfile -t tutors-ai-tool-stub .
+ARG BUILD_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:9.6
+ARG RUNTIME_IMAGE=registry.access.redhat.com/ubi9/nodejs-22-minimal:9.6
+
+FROM ${BUILD_IMAGE} AS build
+USER 0
+WORKDIR /src
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN npm install -g "$(node -p 'require("./package.json").packageManager')" && pnpm fetch --frozen-lockfile
+COPY . .
+RUN pnpm install --offline --frozen-lockfile && pnpm --filter @tutors-ai/app-tool-stub build
+
+FROM ${RUNTIME_IMAGE}
+LABEL org.opencontainers.image.title="tutors-ai-tool-stub" \
+      org.opencontainers.image.description="Stand-in MCP tool server for local development and CI only." \
+      org.opencontainers.image.source="https://github.com/tutors-sdk/tutors-ai-platform" \
+      org.opencontainers.image.licenses="GPL-3.0"
+WORKDIR /opt/app
+COPY --from=build /src/apps/tool-stub/dist/main.mjs ./main.mjs
+COPY --from=build /src/LICENSE ./
+ENV NODE_ENV=production PORT=8080
+EXPOSE 8080
+USER 1001
+CMD ["node", "/opt/app/main.mjs"]

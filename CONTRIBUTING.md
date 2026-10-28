@@ -44,7 +44,11 @@ Adding one is a policy change, not a code change:
 
 1. The tool must be read-only and its input schema must stay within the subset the harness
    enforces (`packages/core/src/domain/tool-schema.ts`); otherwise it is withheld.
-2. List the server's tools through `McpToolHost.listTools` and take the tool's `digest`.
+2. Add the server to the `tool-servers` ConfigMap (`MCP_SERVERS`) in the overlay, its token, if
+   any, to the `tool-server-tokens` Secret, and the network rule that lets the API reach it
+   (`infra/openshift/base/network-policies.yaml` says how). Then list its tools from inside the
+   API's pod, `node /opt/app/tools.mjs list <server>`, which prints the grant that pins each one,
+   and prove the path with `node /opt/app/tools.mjs check <server> <tool> '<arguments>'`.
 3. Add a grant (`server`, `tool`, `digest`) and the exchange limits to the `tools` section of the
    policy for each capability level that should have it, in `packages/contract/src/policies/`.
 4. Add golden cases for it, including a tool result carrying an instruction the answer must not
