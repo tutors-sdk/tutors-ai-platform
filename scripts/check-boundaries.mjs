@@ -71,9 +71,10 @@ function packagesOf(layer) {
 
 /**
  * Packages allowed to speak MCP. Tools reach the platform only through the ToolHarness and the
- * MCP ToolHost (docs/adr/0008); MemoryHub's adapter speaks MCP for memory (docs/adr/0006).
+ * MCP ToolHost (docs/adr/0008); MemoryHub's adapter speaks MCP for memory (docs/adr/0006). The
+ * tool stub is the other end: a stand-in server for compose and CI, never deployed.
  */
-const MCP_CLIENTS = ['packages/adapters/mcp', 'packages/adapters/memoryhub'];
+const MCP_CLIENTS = ['packages/adapters/mcp', 'packages/adapters/memoryhub', 'apps/tool-stub'];
 const isMcp = (s) => /^@modelcontextprotocol\//.test(s);
 
 const failures = [];

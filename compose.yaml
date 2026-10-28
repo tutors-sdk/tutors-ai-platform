@@ -51,6 +51,23 @@ services:
     volumes:
       - ./infra/compose/otel-collector.yaml:/etc/otelcol/config.yaml:ro,z
 
+  # A stand-in MCP tool server (apps/tool-stub), so the tool path is exercised end to end before a
+  # real tool is granted. Its token is local and not a secret; in the cluster tokens come from a
+  # Secret (infra/openshift/base/tool-servers.yaml).
+  tool-stub:
+    build:
+      context: .
+      dockerfile: apps/tool-stub/Containerfile
+    image: localhost/tutors-ai-tool-stub:dev
+    environment:
+      STUB_TOKEN: stub-local
+    ports:
+      - "127.0.0.1:8090:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
   inference-api:
     build:
       context: .
@@ -70,6 +87,12 @@ services:
       # Circuit breaker around the model (ADR 0007); scripts/chaos.sh shortens these in CI.
       MODEL_CIRCUIT_FAILURES: ${MODEL_CIRCUIT_FAILURES:-5}
       MODEL_CIRCUIT_RESET_MS: ${MODEL_CIRCUIT_RESET_MS:-30000}
+      # Tool servers (ADR 0008). The API starts without them: a server that is down only takes its
+      # tools out of the exchanges that were granted them.
+      MCP_SERVERS: '{"stub": "http://tool-stub:8080/mcp"}'
+      MCP_TOKEN_STUB: stub-local
+      TOOL_CIRCUIT_FAILURES: ${TOOL_CIRCUIT_FAILURES:-3}
+      TOOL_CIRCUIT_RESET_MS: ${TOOL_CIRCUIT_RESET_MS:-30000}
     ports:
       - "127.0.0.1:8080:8080"
     volumes:

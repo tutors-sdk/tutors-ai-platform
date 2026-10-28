@@ -78,6 +78,19 @@ One JSON object per line on stdout with a `msg` key, as `apps/*/src/main.ts` do.
 and batch summaries only: per-request detail belongs in spans. The same rule on learner data
 applies.
 
+Two kinds of event are logged as they happen, because they change what every later request sees:
+`model resilience` and `tool resilience` (each circuit change and shed call, the latter naming the
+tool server). The API's start-up line lists the configured tool servers by name, never their URLs
+or tokens.
+
+## Tool audit
+
+Every tool call attempt, refused ones included, is a row in PostgreSQL's `tool_calls` table
+(append-only by trigger): who, under which policy, which tool at which digest, the outcome and its
+reason, sizes and time. Never the arguments or the result. Calls made with the operator's
+`tools.mjs check` are recorded under `operator-check` with source `tools-cli`, so they are told
+apart from learners' exchanges.
+
 ## Adding a trace or log backend
 
 The collector config in `infra/openshift/base/otel-collector.yaml` is the only place to change.

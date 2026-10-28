@@ -27,6 +27,8 @@ LABEL org.opencontainers.image.title="tutors-ai-inference-api" \
 WORKDIR /opt/app
 # esbuild bundles every dependency into one file, so the runtime image carries no node_modules.
 COPY --from=build /src/apps/inference-api/dist/main.mjs ./main.mjs
+# The operator's tool command: `node /opt/app/tools.mjs list <server>` (apps/inference-api/src/tools.ts).
+COPY --from=build /src/apps/inference-api/dist/tools.mjs ./tools.mjs
 COPY --from=build /src/LICENSE ./
 ENV NODE_ENV=production \
     PORT=8080 \

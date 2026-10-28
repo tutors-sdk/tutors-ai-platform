@@ -1,4 +1,5 @@
-import type { ResilienceOptions } from '@tutors-ai/adapter-resilience';
+import type { McpServerConfig } from '@tutors-ai/adapter-mcp';
+import type { ResilienceOptions, ToolHostResilienceOptions } from '@tutors-ai/adapter-resilience';
 
 /** Everything the composition root reads from its environment. */
 export interface Config {
@@ -19,6 +20,10 @@ export interface Config {
   readonly modelResilience: ResilienceOptions;
   readonly memoryRecallLimit: number;
   readonly maxClockSkewMs: number;
+  /** MCP tool servers by the name grants use for them; none when MCP_SERVERS is unset (ADR 0008). */
+  readonly toolServers: Readonly<Record<string, McpServerConfig>>;
+  /** Circuit breaker and bulkhead around each tool server. */
+  readonly toolResilience: ToolHostResilienceOptions;
 }
 
 export class ConfigError extends Error {
@@ -51,6 +56,47 @@ function url(env: Env, key: string): string {
   return value;
 }
 
+const SERVER_NAME = /^[a-z][a-z0-9-]{0,62}$/;
+const TOKEN_PREFIX = 'MCP_TOKEN_';
+
+/** The variable that holds a server's bearer token: MCP_TOKEN_ and the name in capitals, dashes as underscores. */
+export const tokenVariable = (server: string): string => TOKEN_PREFIX + server.toUpperCase().replaceAll('-', '_');
+
+/**
+ * MCP_SERVERS is a JSON object of server name to Streamable HTTP URL. A
+ * server's token comes from its own variable, mounted from a Secret, and is
+ * sent as a bearer token; it never sits in the URL or in MCP_SERVERS.
+ */
+function toolServers(env: Env): Record<string, McpServerConfig> {
+  const raw = env['MCP_SERVERS']?.trim();
+  let listed: unknown = {};
+  if (raw !== undefined && raw !== '') {
+    try {
+      listed = JSON.parse(raw);
+    } catch {
+      throw new ConfigError('MCP_SERVERS must be JSON');
+    }
+  }
+  if (typeof listed !== 'object' || listed === null || Array.isArray(listed)) {
+    throw new ConfigError('MCP_SERVERS must be a JSON object of server name to URL');
+  }
+  const servers: Record<string, McpServerConfig> = {};
+  for (const [name, value] of Object.entries(listed)) {
+    if (!SERVER_NAME.test(name)) throw new ConfigError(`MCP_SERVERS: "${name}" is not a server name (lower case letters, digits and dashes)`);
+    const parsed = typeof value === 'string' && URL.canParse(value) ? new URL(value) : undefined;
+    if (parsed === undefined || !['http:', 'https:'].includes(parsed.protocol)) throw new ConfigError(`MCP_SERVERS: ${name} must be an http or https URL`);
+    if (parsed.username !== '' || parsed.password !== '') throw new ConfigError(`MCP_SERVERS: ${name} has credentials in its URL; put a token in ${tokenVariable(name)}`);
+    const token = env[tokenVariable(name)]?.trim();
+    servers[name] = token === undefined || token === '' ? { url: parsed.href } : { url: parsed.href, headers: { authorization: `Bearer ${token}` } };
+  }
+  // A token for a server that is not listed is a typo that would otherwise go unnoticed.
+  const known = new Set(Object.keys(servers).map(tokenVariable));
+  for (const [key, value] of Object.entries(env)) {
+    if (key.startsWith(TOKEN_PREFIX) && !known.has(key) && value?.trim()) throw new ConfigError(`${key} names no server in MCP_SERVERS`);
+  }
+  return servers;
+}
+
 /** Reads and validates configuration, failing fast with every problem named. */
 export function readConfig(env: Env): Config {
   const digest = required(env, 'OLLAMA_DIGEST');
@@ -78,5 +124,13 @@ export function readConfig(env: Env): Config {
     },
     memoryRecallLimit: integer(env, 'MEMORY_RECALL_LIMIT', 6, 0),
     maxClockSkewMs: integer(env, 'MAX_CLOCK_SKEW_MS', 60_000, 0),
+    toolServers: toolServers(env),
+    toolResilience: {
+      circuit: {
+        failureThreshold: integer(env, 'TOOL_CIRCUIT_FAILURES', 3, 1),
+        resetAfterMs: integer(env, 'TOOL_CIRCUIT_RESET_MS', 30_000, 1),
+      },
+      bulkhead: { maxConcurrent: integer(env, 'TOOL_MAX_CONCURRENT', 4, 1), maxQueued: integer(env, 'TOOL_MAX_QUEUED', 16, 0) },
+    },
   };
 }

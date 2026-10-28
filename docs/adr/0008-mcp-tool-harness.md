@@ -1,6 +1,6 @@
 # 0008. Tools reach a model only through a harness, with MCP as the first tool adapter
 
-Date: 2026-10-28 · Status: Proposed
+Date: 2026-10-28 · Status: Accepted (project lead, 2026-10-28)
 
 ## Context
 
@@ -109,9 +109,11 @@ policy will admit the inference API's egress to configured tool servers only.
 
 ## Consequences
 
-- Before the first tool is wired, three things are still needed: a PostgreSQL `ToolAudit`
-  adapter that passes the kit (the composition root must not wire the harness without a durable
-  audit), configuration of servers in the inference API, and the network policy.
+- The infrastructure is in place ahead of the first tool: a PostgreSQL `ToolAudit` (append-only
+  by trigger, passing the kit), tool servers configured in the inference API (`MCP_SERVERS`, a
+  token per server from a Secret), the harness composed only with that durable audit, an egress
+  policy for the API, and a stand-in server that CI calls end to end and stops. The first tool's
+  change adds tool calling to `AssistStudent` and the `LanguageModel` port.
 - Adding a tool is a data change: list the server's tools to read the digest, add a grant to the
   policy, run the contract tests, and add golden cases, including an injected instruction in a
   tool result that the answer must not follow.

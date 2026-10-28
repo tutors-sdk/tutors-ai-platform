@@ -6,6 +6,12 @@
 # Nothing reaches inference-api itself (and there is no Route) until authentication lands
 # (ADR 0005). Peers are pod selectors without a namespaceSelector, so they match only pods in
 # this namespace, except OpenShift's own Prometheus, which scrapes from its namespace: staging cannot reach production and the reverse. CI checks the ollama rule.
+#
+# Egress from inference-api is limited too, because it is the component that reaches tool servers
+# (ADR 0008): DNS, the three components above, and pods labelled tutors-ai/tool-server: "true" on
+# 8080. A tool server deployed in this namespace also needs an ingress policy that names it and
+# admits only inference-api; one outside the cluster needs an overlay rule naming its address
+# range. CI denies any rule that opens the API's egress to everywhere (infra/ci/policy/tools.rego).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -91,3 +97,55 @@ spec:
       ports:
         - protocol: TCP
           port: 8889
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inference-api-egress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: inference-api
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: otel-collector
+      ports:
+        - protocol: TCP
+          port: 4318
+    - to:
+        - podSelector:
+            matchLabels:
+              tutors-ai/tool-server: "true"
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -4,11 +4,11 @@ import { readConfig } from './config.ts';
 import { createHandler } from './http.ts';
 
 const config = readConfig(process.env);
-const { services, close } = await compose(config);
+const { services, tools, close } = await compose(config);
 const server = createServer(createHandler(services));
 server.requestTimeout = config.modelTimeoutMs + 5_000;
 server.listen(config.port, () => {
-  console.log(JSON.stringify({ msg: 'inference-api listening', port: config.port, model: config.ollama.model }));
+  console.log(JSON.stringify({ msg: 'inference-api listening', port: config.port, model: config.ollama.model, toolServers: tools.servers }));
 });
 
 let stopping = false;
